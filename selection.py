@@ -1,11 +1,12 @@
-import numpy as np
-import ROOT
+from packages import *
 import selection_parameters
+import utils
 
 class Particle:
     def __init__(self, pdg, mass):
         self.pdg = pdg
         self.mass = mass  # in MeV/c^2
+        self.parBQ = {}  # parameter set for beam quality cut
 
         self.candidatePDGlist = []
         self.SetBQparameters()
@@ -41,11 +42,11 @@ class Particle:
         elif self.pdg == 2212:
             self.parBQ = selection_parameters.protonBQ
     
-    def PassSelection(self, evt):
+    def PassSelection(self, evt, **kwargs):
         if self.pdg == 211:
             return PassPandoraSliceCut(evt) & PassCaloSizeCut(evt) & PassBeamQualityCut(evt, self.parBQ) & PassFidVolCut(evt, self.parBQ) & PassMichelScoreCut(evt) & PassProtonCut(evt)
         elif self.pdg == 2212:
-            return PassPandoraSliceCut(evt) & PassCaloSizeCut(evt) & PassBeamQualityCut(evt, self.parBQ) & PassFidVolCut(evt, self.parBQ) & PassStoppingProtonCut(evt)
+            return PassPandoraSliceCut(evt) & PassCaloSizeCut(evt) & PassBeamQualityCut(evt, self.parBQ) & PassFidVolCut(evt, self.parBQ) & PassStoppingProtonCut(evt, **kwargs)
         
 
 def PassPandoraSliceCut(evt): # track-like Pandora slice
@@ -147,7 +148,7 @@ def PassProtonCut(evt):
     chi2_protons = np.where(mask, reco_beam_Chi2_proton / reco_beam_Chi2_ndof, -1)
     return chi2_protons > 80
 
-def PassStoppingProtonCut(evt):
+def PassStoppingProtonCut(evt, reco_trklen):
     beam_inst_P = evt["beam_inst_P"]
     reco_beam_calibrated_dEdX_SCE = evt["reco_beam_calibrated_dEdX_SCE"]
     reco_beam_resRange_SCE = evt["reco_beam_resRange_SCE"]
@@ -155,7 +156,6 @@ def PassStoppingProtonCut(evt):
     csda_file = ROOT.TFile.Open("/Users/lyret/proton_mom_csda_converter.root") # uproot does not support Eval()
     csda_range_vs_mom_sm = csda_file.Get("csda_range_vs_mom_sm")
     csda = np.array([csda_range_vs_mom_sm.Eval(p) for p in beam_inst_P])
-    reco_trklen = GetTrackLength(evt)
     trklen_csda_proton = reco_trklen / csda
     
     ppid_file = ROOT.TFile.Open("/Users/lyret/dEdxrestemplates.root")
@@ -164,7 +164,7 @@ def PassStoppingProtonCut(evt):
     for ievt in range(len(chi2_stopping_proton)):
         trkdedx = reco_beam_calibrated_dEdX_SCE[ievt]
         trkres = reco_beam_resRange_SCE[ievt]
-        chi2_stopping_proton[ievt] = GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro)
+        chi2_stopping_proton[ievt] = utils.GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro)
 
     short_indices = trklen_csda_proton < 0.75
     long_indices = trklen_csda_proton > 0.75
@@ -173,53 +173,3 @@ def PassStoppingProtonCut(evt):
     pass_cut[long_indices] = chi2_stopping_proton[long_indices] > 10
 
     return pass_cut
-
-def GetTrackLength(evt):
-    reco_beam_calo_X = evt["reco_beam_calo_X"]
-    reco_beam_calo_Y = evt["reco_beam_calo_Y"]
-    reco_beam_calo_Z = evt["reco_beam_calo_Z"]
-
-    reco_trklen = np.zeros_like(reco_beam_calo_X)
-    for ievt in range(len(reco_trklen)):
-        recoX = reco_beam_calo_X[ievt]
-        recoY = reco_beam_calo_Y[ievt]
-        recoZ = reco_beam_calo_Z[ievt]
-        for ii in range(1, len(recoX)):
-            reco_trklen[ievt] += np.sqrt(
-                np.power(recoX[ii] - recoX[ii-1], 2) +
-                np.power(recoY[ii] - recoY[ii-1], 2) +
-                np.power(recoZ[ii] - recoZ[ii-1], 2)
-            )
-    return reco_trklen
-
-def GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro):
-    npt = 0
-    chi2pro = 0
-
-    for i in range(len(trkdedx)):
-        # Ignore the first and the last point
-        if i == 0 or i == len(trkdedx) - 1:
-            continue
-        if trkdedx[i] > 1000:  # Protect against large pulse height
-            continue
-
-        bin = dedx_range_pro.FindBin(trkres[i])
-        
-        if bin >= 1 and bin <= dedx_range_pro.GetNbinsX():
-            bincpro = dedx_range_pro.GetBinContent(bin)
-            if bincpro < 1e-6:  # For 0 bin content, use neighboring bins
-                bincpro = (dedx_range_pro.GetBinContent(bin - 1) + dedx_range_pro.GetBinContent(bin + 1)) / 2
-            
-            binepro = dedx_range_pro.GetBinError(bin)
-            if binepro < 1e-6:
-                binepro = (dedx_range_pro.GetBinError(bin - 1) + dedx_range_pro.GetBinError(bin + 1)) / 2
-            
-            errdedx = 0.04231 + 0.0001783 * trkdedx[i] * trkdedx[i]  # Resolution on dE/dx
-            errdedx *= trkdedx[i]
-            chi2pro += ((trkdedx[i] - bincpro) / np.sqrt(binepro**2 + errdedx**2))**2
-            npt += 1
-
-    if npt > 0:
-        return chi2pro / npt
-    else:
-        return 9999

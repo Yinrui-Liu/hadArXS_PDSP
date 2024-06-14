@@ -1,6 +1,5 @@
-import numpy as np
+from packages import *
 from scipy.interpolate import CubicSpline
-import math
 
 class BetheBloch:
 

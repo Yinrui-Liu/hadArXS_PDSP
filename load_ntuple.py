@@ -1,8 +1,9 @@
-import uproot
+from packages import *
+from processor import Processor
 import selection
 
 # pduneana_MC_20g4rw.root, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04.root
-PDSP_ntuple = uproot.open("/Users/lyret/PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04.root")
+PDSP_ntuple = uproot.open("/Users/lyret/pduneana_MC_20g4rw.root")
 pduneana = PDSP_ntuple["pduneana/beamana"]
 
 variables_to_load = [
@@ -37,29 +38,31 @@ variables_to_load = [
     "beam_inst_P",
     "reco_beam_calibrated_dEdX_SCE",
     "reco_beam_resRange_SCE",
+    "true_beam_traj_KE",
 ]
-Nevents = 10000
-eventset = pduneana.iterate(expressions=variables_to_load, library="np") # entry_stop=Nevents, step_size=20
-Nevt_tot = 0
-Nevt_isPar = 0
-Nevt_selected = 0
-for evt in eventset:
-    Nevt_tot += len(evt["event"])
 
-    pionp = selection.Particle(211, 139.57)
-    pionp.SetCandidatePDGlist([-13, 13, 211])
-    
-    proton = selection.Particle(2212, 938.272)
-    proton.SetCandidatePDG(2212)
+pionp = selection.Particle(211, 139.57)
+pionp.SetCandidatePDGlist([-13, 13, 211])
 
-    anapar = proton
+proton = selection.Particle(2212, 938.272)
+proton.SetCandidatePDG(2212)
 
-    mask_SelectedPart =  anapar.IsSelectedPart(evt)
-    evt_processed = anapar.PassSelection(evt)
+eventset = Processor(pduneana, proton, isMC=True)
+eventset.LoadVariables(variables_to_load)
+eventset.ProcessEvent(Nevents=None)
 
-    Nevt_isPar += len(evt_processed[mask_SelectedPart])
-    Nevt_selected += len(evt_processed[mask_SelectedPart][evt_processed[mask_SelectedPart]])
+mask_SelectedPart = np.array(eventset.mask_SelectedPart, dtype=bool)
+mask_FullSelection = np.array(eventset.mask_FullSelection, dtype=bool)
+combined_mask = mask_SelectedPart & mask_FullSelection
 
-    print(f"{Nevt_tot} events processed.")
+'''plt.hist(eventset.true_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
+plt.hist(eventset.true_end_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEf")
+plt.legend()
+plt.savefig("test_t.png")
+plt.clf()
 
-print(Nevt_tot, Nevt_isPar, Nevt_selected)
+plt.hist(eventset.reco_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
+plt.hist(eventset.reco_end_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEf")
+plt.legend()
+plt.savefig("test_r.png")
+plt.clf()'''
