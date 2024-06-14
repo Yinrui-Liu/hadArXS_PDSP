@@ -10,7 +10,6 @@ class BetheBloch:
         self.charge = 0
         self.sp_KE_range = None
         self.sp_range_KE = None
-        self.spmap = {}
         if pdg != 0:
             self.set_pdg_code(pdg)
 
@@ -108,7 +107,6 @@ class BetheBloch:
         if self.sp_range_KE is not None:
             self.sp_range_KE = None
 
-        self.spmap.clear()
         KE = np.logspace(math.log10(minke), math.log10(maxke), num_points)
         Range = np.array([self.range_from_KE(ke) for ke in KE])
 
@@ -136,44 +134,12 @@ class BetheBloch:
         return self.sp_range_KE(range)
 
     def KE_at_length(self, KE0, tracklength):
-        iKE = int(KE0)
-
-        if iKE not in self.spmap:
-            self.create_spline_at_KE(iKE)
-
-        deltaE = self.spmap[iKE](tracklength)
-
-        if iKE <= 0:
-            return 0
-        if deltaE < 0:
-            return 0
-        if KE0 - deltaE < 0:
-            return 0
-
-        return KE0 - deltaE
-
-    def create_spline_at_KE(self, iKE):
-        KE0 = iKE
-
-        num_points = int(KE0 / 10)
-        if num_points > 1:
-            deltaE = np.zeros(num_points)
-            trklength = np.zeros(num_points)
-            for i in range(num_points):
-                KE = KE0 - i * 10
-                deltaE[i] = KE0 - KE
-                trklength[i] = self.integrated_dEdx(KE, KE0)
+        trklen0 = self.range_from_KE_spline(KE0)
+        trklen1 = trklen0 - tracklength
+        if trklen1 > 0:
+            return self.KE_from_range_spline(trklen1)
         else:
-            print(f"KE too low: {iKE}")
-            num_points = 2
-            deltaE = np.zeros(num_points)
-            trklength = np.zeros(num_points)
-            deltaE[0] = 0
-            trklength[0] = 0
-            deltaE[1] = KE0
-            trklength[1] = self.range_from_KE(KE0)
-
-        self.spmap[iKE] = CubicSpline(trklength, deltaE)
+            return 0
 
 
 if __name__ == "__main__":
