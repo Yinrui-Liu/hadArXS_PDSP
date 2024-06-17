@@ -1,6 +1,7 @@
 from packages import *
 from processor import Processor
 import selection
+import MCreweight
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
@@ -48,6 +49,8 @@ variables_to_load = [
     "reco_beam_true_byE_origin",
     "reco_beam_true_byE_PDG",
     "true_beam_endProcess",
+    "g4rw_full_grid_piplus_coeffs",
+    "g4rw_full_grid_proton_coeffs",
 ]
 
 pionp = selection.Particle(211, 139.57)
@@ -56,9 +59,9 @@ pionp.SetCandidatePDGlist([-13, 13, 211])
 proton = selection.Particle(2212, 938.272)
 proton.SetCandidatePDG(2212)
 
-eventset = Processor(pduneana, proton, isMC)
+eventset = Processor(pduneana, pionp, isMC)
 eventset.LoadVariables(variables_to_load)
-eventset.ProcessEvent(Nevents=None)
+eventset.ProcessEvent(Nevents=10000)
 
 mask_SelectedPart = np.array(eventset.mask_SelectedPart, dtype=bool)
 mask_FullSelection = np.array(eventset.mask_FullSelection, dtype=bool)
@@ -66,6 +69,8 @@ combined_mask = mask_SelectedPart & mask_FullSelection
 
 
 '''
+print(MCreweight.cal_g4rw(eventset, 0.9))
+
 print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==1)]))
 
 plt.hist(eventset.true_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")

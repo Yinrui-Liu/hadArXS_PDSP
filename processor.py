@@ -21,10 +21,13 @@ class Processor:
         self.reco_initial_energy = []
         self.reco_end_energy = []
         self.reco_track_length = []
+        self.true_beam_PDG = np.array([])
         self.mask_SelectedPart = np.array([])
         self.mask_FullSelection = np.array([])
         self.particle_type = []
-
+        self.g4rw_full_grid_piplus_coeffs = np.array([])
+        self.g4rw_full_grid_proton_coeffs = np.array([])
+        
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
 
@@ -58,6 +61,9 @@ class Processor:
             true_beam_PDG = evt["true_beam_PDG"]
             true_beam_endProcess = evt["true_beam_endProcess"]
 
+            g4rw_full_grid_piplus_coeffs = evt["g4rw_full_grid_piplus_coeffs"]
+            g4rw_full_grid_proton_coeffs = evt["g4rw_full_grid_proton_coeffs"]
+            
             for ievt in range(Nbatch):
                 ## calculate true length and true energies
                 trueX = true_beam_traj_X[ievt]
@@ -152,7 +158,10 @@ class Processor:
             Nevt_selected += len(mask_FullSelection[mask_SelectedPart & mask_FullSelection])
             self.mask_SelectedPart = np.concatenate([self.mask_SelectedPart, mask_SelectedPart])
             self.mask_FullSelection = np.concatenate([self.mask_FullSelection, mask_FullSelection])
-
+            self.true_beam_PDG = np.concatenate([self.true_beam_PDG, true_beam_PDG])
+            self.g4rw_full_grid_piplus_coeffs = np.concatenate([self.g4rw_full_grid_piplus_coeffs, g4rw_full_grid_piplus_coeffs])
+            self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
+            
             print(f"{Nevt_tot} events processed.")
         
         print(Nevt_tot, Nevt_isPar, Nevt_selected)
