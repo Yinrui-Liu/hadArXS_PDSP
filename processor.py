@@ -23,6 +23,7 @@ class Processor:
         self.reco_track_length = []
         self.mask_SelectedPart = np.array([])
         self.mask_FullSelection = np.array([])
+        self.particle_type = []
 
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
@@ -35,8 +36,9 @@ class Processor:
         Nevt_selected = 0
 
         for evt in eventset: # each step is a batch of events
-            Nbatch = len(evt["MC"])
-            
+            evtno = evt["event"]
+            Nbatch = len(evtno)
+
             true_beam_traj_X = evt["true_beam_traj_X"]
             true_beam_traj_Y = evt["true_beam_traj_Y"]
             true_beam_traj_Z = evt["true_beam_traj_Z"]
@@ -49,6 +51,12 @@ class Processor:
             upstream_energy_loss = GetUpstreamEnergyLoss(beam_inst_KE, self.particle.pdg)
             reco_frontfaceKE = beam_inst_KE - upstream_energy_loss
             reco_trklen_batch = np.zeros(Nbatch)
+
+            reco_beam_true_byE_matched = evt["reco_beam_true_byE_matched"]
+            reco_beam_true_byE_origin = evt["reco_beam_true_byE_origin"]
+            reco_beam_true_byE_PDG = evt["reco_beam_true_byE_PDG"]
+            true_beam_PDG = evt["true_beam_PDG"]
+            true_beam_endProcess = evt["true_beam_endProcess"]
 
             for ievt in range(Nbatch):
                 ## calculate true length and true energies
@@ -130,6 +138,11 @@ class Processor:
                 self.reco_end_energy.append(reco_Eend)
                 self.reco_track_length.append(reco_trklen)
 
+                # get particle type
+                par_type = GetParticleType(self.particle.pdg, self.isMC, evtno[ievt]%2, reco_beam_true_byE_matched[ievt], reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt], true_beam_PDG[ievt], true_beam_endProcess[ievt])
+                self.particle_type.append(par_type)
+
+
             # selection
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
             mask_FullSelection = self.particle.PassSelection(evt, reco_trklen=reco_trklen_batch)
@@ -149,6 +162,7 @@ class Processor:
         self.reco_initial_energy = np.array(self.reco_initial_energy)
         self.reco_end_energy = np.array(self.reco_end_energy)
         self.reco_track_length = np.array(self.reco_track_length)
+        self.particle_type = np.array(self.particle_type)
 
 
 def GetUpstreamEnergyLoss(beamKE, pdg, momentum=1):
@@ -160,3 +174,56 @@ def GetUpstreamEnergyLoss(beamKE, pdg, momentum=1):
     else:
         raise Exception(f"No mode implemented for pdg={pdg} momentum={momentum}.")
     return upEloss
+
+def GetParticleType(pdg_mode, isMC, isFake, beam_matched, isCosmic, true_particle_PDG, true_beam_PDG, true_beam_endProcess):
+    if not isMC:
+        return 0 # Data
+    
+    if pdg_mode == 211:
+        if isFake:
+            return 0 # Data (fake)
+        elif not beam_matched:
+            if isCosmic:
+                return 4 # misID:cosmic
+            elif abs(true_particle_PDG) == 211:
+                return 6 # misID:pi
+            elif true_particle_PDG == 2212:
+                return 5 # misID:p
+            elif abs(true_particle_PDG) == 13:
+                return 7 # misID:mu
+            elif abs(true_particle_PDG) == 11 or true_particle_PDG == 22:
+                return 8 # misID:e/γ
+            else:
+                return 9 # misID:other
+        elif true_beam_PDG == -13:
+            return 3 # Muon
+        elif true_beam_PDG == 211:
+            if true_beam_endProcess == "pi+Inelastic":
+                return 1 # PiInel (signal)
+            else:
+                return 2 # PiDecay
+        return 9
+            
+    elif pdg_mode == 2212:
+        if isFake:
+            return 0 # Data (fake)
+        elif not beam_matched:
+            if isCosmic:
+                return 3 # misID:cosmic
+            elif abs(true_particle_PDG) == 211:
+                return 5 # misID:pi
+            elif true_particle_PDG == 2212:
+                return 4 # misID:p
+            elif abs(true_particle_PDG) == 13:
+                return 6 # misID:mu
+            elif abs(true_particle_PDG) == 11 or true_particle_PDG == 22:
+                return 7 # misID:e/γ
+            else:
+                return 8 # misID:other
+        elif true_beam_PDG == 2212:
+            if true_beam_endProcess == "protonInelastic":
+                return 1 # PInel (signal)
+            else:
+                return 2 # PElas
+        return 8
+            

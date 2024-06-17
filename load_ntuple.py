@@ -2,8 +2,13 @@ from packages import *
 from processor import Processor
 import selection
 
-# pduneana_MC_20g4rw.root, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04.root
-PDSP_ntuple = uproot.open("/Users/lyret/pduneana_MC_20g4rw.root")
+# pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
+PDSP_ntuple_name = "pduneana_MC_20g4rw"
+PDSP_ntuple = uproot.open(f"/Users/lyret/{PDSP_ntuple_name}.root")
+if "MC" in PDSP_ntuple_name:
+    isMC = True
+else:
+    isMC = False
 pduneana = PDSP_ntuple["pduneana/beamana"]
 
 variables_to_load = [
@@ -39,6 +44,10 @@ variables_to_load = [
     "reco_beam_calibrated_dEdX_SCE",
     "reco_beam_resRange_SCE",
     "true_beam_traj_KE",
+    "reco_beam_true_byE_matched",
+    "reco_beam_true_byE_origin",
+    "reco_beam_true_byE_PDG",
+    "true_beam_endProcess",
 ]
 
 pionp = selection.Particle(211, 139.57)
@@ -47,7 +56,7 @@ pionp.SetCandidatePDGlist([-13, 13, 211])
 proton = selection.Particle(2212, 938.272)
 proton.SetCandidatePDG(2212)
 
-eventset = Processor(pduneana, proton, isMC=True)
+eventset = Processor(pduneana, proton, isMC)
 eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=None)
 
@@ -55,7 +64,11 @@ mask_SelectedPart = np.array(eventset.mask_SelectedPart, dtype=bool)
 mask_FullSelection = np.array(eventset.mask_FullSelection, dtype=bool)
 combined_mask = mask_SelectedPart & mask_FullSelection
 
-'''plt.hist(eventset.true_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
+
+'''
+print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==1)]))
+
+plt.hist(eventset.true_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
 plt.hist(eventset.true_end_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEf")
 plt.legend()
 plt.savefig("test_t.png")
@@ -65,4 +78,5 @@ plt.hist(eventset.reco_initial_energy[combined_mask], bins=np.arange(0,1000,30),
 plt.hist(eventset.reco_end_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEf")
 plt.legend()
 plt.savefig("test_r.png")
-plt.clf()'''
+plt.clf()
+'''
