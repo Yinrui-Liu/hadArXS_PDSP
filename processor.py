@@ -27,6 +27,8 @@ class Processor:
         self.particle_type = []
         self.g4rw_full_grid_piplus_coeffs = np.array([])
         self.g4rw_full_grid_proton_coeffs = np.array([])
+        self.true_beam_startP = np.array([])
+        self.reco_beam_true_byE_matched = np.array([])
         
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
@@ -63,6 +65,7 @@ class Processor:
 
             g4rw_full_grid_piplus_coeffs = evt["g4rw_full_grid_piplus_coeffs"]
             g4rw_full_grid_proton_coeffs = evt["g4rw_full_grid_proton_coeffs"]
+            true_beam_startP = evt["true_beam_startP"]
             
             for ievt in range(Nbatch):
                 ## calculate true length and true energies
@@ -161,6 +164,8 @@ class Processor:
             self.true_beam_PDG = np.concatenate([self.true_beam_PDG, true_beam_PDG])
             self.g4rw_full_grid_piplus_coeffs = np.concatenate([self.g4rw_full_grid_piplus_coeffs, g4rw_full_grid_piplus_coeffs])
             self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
+            self.true_beam_startP = np.concatenate([self.true_beam_startP, true_beam_startP])
+            self.reco_beam_true_byE_matched = np.concatenate([self.reco_beam_true_byE_matched, reco_beam_true_byE_matched])
             
             print(f"{Nevt_tot} events processed.")
         

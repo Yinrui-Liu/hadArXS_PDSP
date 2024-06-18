@@ -51,6 +51,7 @@ variables_to_load = [
     "true_beam_endProcess",
     "g4rw_full_grid_piplus_coeffs",
     "g4rw_full_grid_proton_coeffs",
+    "true_beam_startP",
 ]
 
 pionp = selection.Particle(211, 139.57)
@@ -67,8 +68,9 @@ mask_SelectedPart = np.array(eventset.mask_SelectedPart, dtype=bool)
 mask_FullSelection = np.array(eventset.mask_FullSelection, dtype=bool)
 combined_mask = mask_SelectedPart & mask_FullSelection
 
-
 '''
+print(MCreweight.cal_momentum_reweight(eventset))
+print(MCreweight.cal_bkg_reweight(eventset))
 print(MCreweight.cal_g4rw(eventset, 0.9))
 
 print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==1)]))
