@@ -176,7 +176,27 @@ class Processor:
         self.reco_initial_energy = np.array(self.reco_initial_energy)
         self.reco_end_energy = np.array(self.reco_end_energy)
         self.reco_track_length = np.array(self.reco_track_length)
+        self.mask_SelectedPart = np.array(self.mask_SelectedPart, dtype=bool)
+        self.mask_FullSelection = np.array(self.mask_FullSelection, dtype=bool)
         self.particle_type = np.array(self.particle_type)
+
+    def GetOutVarsDict(self):
+        outVars = {}
+        outVars["true_initial_energy"] = self.true_initial_energy
+        outVars["true_end_energy"] = self.true_end_energy
+        outVars["true_track_length"] = self.true_track_length
+        outVars["reco_initial_energy"] = self.reco_initial_energy
+        outVars["reco_end_energy"] = self.reco_end_energy
+        outVars["reco_track_length"] = self.reco_track_length
+        outVars["true_beam_PDG"] = self.true_beam_PDG
+        outVars["mask_SelectedPart"] = self.mask_SelectedPart
+        outVars["mask_FullSelection"] = self.mask_FullSelection
+        outVars["particle_type"] = self.particle_type
+        outVars["g4rw_full_grid_piplus_coeffs"] = self.g4rw_full_grid_piplus_coeffs
+        outVars["g4rw_full_grid_proton_coeffs"] = self.g4rw_full_grid_proton_coeffs
+        outVars["true_beam_startP"] = self.true_beam_startP
+        outVars["reco_beam_true_byE_matched"] = self.reco_beam_true_byE_matched
+        return outVars
 
 
 def GetUpstreamEnergyLoss(beamKE, pdg, momentum=1):

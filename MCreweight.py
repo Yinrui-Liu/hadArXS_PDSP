@@ -50,8 +50,8 @@ def cal_momentum_reweight(eventset, rdm_radius=0, rdm_angle=0):
     numo = np.exp(-np.power((true_beam_startP - mom_mu) / mom_sigma, 2) / 2)
     weight *= numo
     weight /= deno
-    wlimit = 3 # avoid large weight
-    weight = np.clip(weight, 1.0 / wlimit, wlimit)
+    wlimit = 3. # avoid large weight
+    weight = np.clip(weight, 1/wlimit, wlimit)
 
     return weight
 

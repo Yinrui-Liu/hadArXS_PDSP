@@ -62,17 +62,22 @@ proton.SetCandidatePDG(2212)
 
 eventset = Processor(pduneana, pionp, isMC)
 eventset.LoadVariables(variables_to_load)
-eventset.ProcessEvent(Nevents=10000)
+eventset.ProcessEvent(Nevents=None)
+processedVars = eventset.GetOutVarsDict()
 
-mask_SelectedPart = np.array(eventset.mask_SelectedPart, dtype=bool)
-mask_FullSelection = np.array(eventset.mask_FullSelection, dtype=bool)
-combined_mask = mask_SelectedPart & mask_FullSelection
+reweight = MCreweight.cal_bkg_reweight(eventset) * MCreweight.cal_momentum_reweight(eventset)
+processedVars["reweight"] = reweight
+
+with open('processedVars.pkl', 'wb') as procfile:
+    pickle.dump(processedVars, procfile)
+
 
 '''
 print(MCreweight.cal_momentum_reweight(eventset))
 print(MCreweight.cal_bkg_reweight(eventset))
 print(MCreweight.cal_g4rw(eventset, 0.9))
 
+combined_mask = mask_SelectedPart & mask_FullSelection
 print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==1)]))
 
 plt.hist(eventset.true_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
