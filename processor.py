@@ -17,11 +17,14 @@ class Processor:
         # output variables
         self.true_initial_energy = []
         self.true_end_energy = []
+        self.true_sigflag = []
         self.true_track_length = []
         self.reco_initial_energy = []
         self.reco_end_energy = []
+        self.reco_sigflag = []
         self.reco_track_length = []
         self.true_beam_PDG = np.array([])
+        self.mask_TrueSignal = np.array([])
         self.mask_SelectedPart = np.array([])
         self.mask_FullSelection = np.array([])
         self.particle_type = []
@@ -37,6 +40,7 @@ class Processor:
         eventset = self.ntuple.iterate(expressions=self.variables_to_load, entry_stop=Nevents, library="np") # entry_start=10000, step_size=1000
 
         Nevt_tot = 0
+        Nevt_truesig = 0
         Nevt_isPar = 0
         Nevt_selected = 0
 
@@ -67,6 +71,7 @@ class Processor:
             g4rw_full_grid_proton_coeffs = evt["g4rw_full_grid_proton_coeffs"]
             true_beam_startP = evt["true_beam_startP"]
             
+            true_endZ = []
             for ievt in range(Nbatch):
                 ## calculate true length and true energies
                 trueX = true_beam_traj_X[ievt]
@@ -74,7 +79,8 @@ class Processor:
                 trueZ = true_beam_traj_Z[ievt]
                 true_accum_len = np.zeros_like(trueZ)
                 Ntrue_traj_pts = len(trueZ)
-                
+                true_endZ.append(trueZ[-1])
+
                 # calculate true length
                 true_trklen = 0.
                 for ii in range(1, Ntrue_traj_pts):
@@ -151,14 +157,35 @@ class Processor:
                 par_type = GetParticleType(self.particle.pdg, self.isMC, evtno[ievt]%2, reco_beam_true_byE_matched[ievt], reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt], true_beam_PDG[ievt], true_beam_endProcess[ievt])
                 self.particle_type.append(par_type)
 
+                inclusive = True
+                if self.particle.pdg == 211:
+                    if inclusive and true_beam_endProcess[ievt]=="pi+Inelastic":
+                        true_flag = 1
+                    else:
+                        true_flag = 0
+                    reco_flag = 1
+                elif self.particle.pdg == 2212:
+                    if inclusive and true_beam_endProcess[ievt]=="protonInelastic":
+                        true_flag = 1
+                    else:
+                        true_flag = 0
+                    reco_flag = 1
+                else:
+                    raise Exception(f"No mode implemented for pdg={self.particle.pdg}.")
+                self.true_sigflag.append(true_flag)
+                self.reco_sigflag.append(reco_flag)
+
 
             # selection
+            mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > selection_parameters.fidvol_low)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
             mask_FullSelection = self.particle.PassSelection(evt, reco_trklen=reco_trklen_batch)
 
             Nevt_tot += Nbatch
+            Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])
             Nevt_isPar += len(mask_SelectedPart[mask_SelectedPart])
             Nevt_selected += len(mask_FullSelection[mask_SelectedPart & mask_FullSelection])
+            self.mask_TrueSignal = np.concatenate([self.mask_TrueSignal, mask_TrueSignal])
             self.mask_SelectedPart = np.concatenate([self.mask_SelectedPart, mask_SelectedPart])
             self.mask_FullSelection = np.concatenate([self.mask_FullSelection, mask_FullSelection])
             self.true_beam_PDG = np.concatenate([self.true_beam_PDG, true_beam_PDG])
@@ -169,13 +196,16 @@ class Processor:
             
             print(f"{Nevt_tot} events processed.")
         
-        print(Nevt_tot, Nevt_isPar, Nevt_selected)
+        print(Nevt_tot, Nevt_truesig, Nevt_isPar, Nevt_selected)
         self.true_initial_energy = np.array(self.true_initial_energy)
         self.true_end_energy = np.array(self.true_end_energy)
+        self.true_sigflag = np.array(self.true_sigflag, dtype=bool)
         self.true_track_length = np.array(self.true_track_length)
         self.reco_initial_energy = np.array(self.reco_initial_energy)
         self.reco_end_energy = np.array(self.reco_end_energy)
+        self.reco_sigflag = np.array(self.reco_sigflag, dtype=bool)
         self.reco_track_length = np.array(self.reco_track_length)
+        self.mask_TrueSignal = np.array(self.mask_TrueSignal, dtype=bool)
         self.mask_SelectedPart = np.array(self.mask_SelectedPart, dtype=bool)
         self.mask_FullSelection = np.array(self.mask_FullSelection, dtype=bool)
         self.particle_type = np.array(self.particle_type)
@@ -184,11 +214,14 @@ class Processor:
         outVars = {}
         outVars["true_initial_energy"] = self.true_initial_energy
         outVars["true_end_energy"] = self.true_end_energy
+        outVars["true_sigflag"] = self.true_sigflag
         outVars["true_track_length"] = self.true_track_length
         outVars["reco_initial_energy"] = self.reco_initial_energy
         outVars["reco_end_energy"] = self.reco_end_energy
+        outVars["reco_sigflag"] = self.reco_sigflag
         outVars["reco_track_length"] = self.reco_track_length
         outVars["true_beam_PDG"] = self.true_beam_PDG
+        outVars["mask_TrueSignal"] = self.mask_TrueSignal
         outVars["mask_SelectedPart"] = self.mask_SelectedPart
         outVars["mask_FullSelection"] = self.mask_FullSelection
         outVars["particle_type"] = self.particle_type

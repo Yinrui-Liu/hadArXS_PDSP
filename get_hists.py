@@ -1,19 +1,5 @@
 from packages import *
 
-with open('processedVars.pkl', 'rb') as procfile:
-    processedVars = pickle.load(procfile)
-
-true_initial_energy = processedVars["true_initial_energy"]
-true_end_energy = processedVars["true_end_energy"]
-reco_initial_energy = processedVars["reco_initial_energy"]
-reco_end_energy = processedVars["reco_end_energy"]
-mask_SelectedPart = processedVars["mask_SelectedPart"]
-mask_FullSelection = processedVars["mask_FullSelection"]
-combined_mask = mask_SelectedPart & mask_FullSelection
-particle_type = processedVars["particle_type"]
-reweight = processedVars["reweight"]
-
-
 def divide_vars_by_partype(vars, particle_type, mask=None, weight=None):
     ntypes = max(particle_type)+1
     divided_vars = []
@@ -71,6 +57,19 @@ def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, bkg_scal
 # def bkg_sideband_fit():
 
 if __name__ == "__main__":
+    with open('processedVars.pkl', 'rb') as procfile:
+        processedVars = pickle.load(procfile)
+
+    true_initial_energy = processedVars["true_initial_energy"]
+    true_end_energy = processedVars["true_end_energy"]
+    reco_initial_energy = processedVars["reco_initial_energy"]
+    reco_end_energy = processedVars["reco_end_energy"]
+    mask_SelectedPart = processedVars["mask_SelectedPart"]
+    mask_FullSelection = processedVars["mask_FullSelection"]
+    combined_mask = mask_SelectedPart & mask_FullSelection
+    particle_type = processedVars["particle_type"]
+    reweight = processedVars["reweight"]
+
     divided_vars, divided_weights = divide_vars_by_partype(reco_end_energy, particle_type, mask=(mask_SelectedPart&mask_FullSelection), weight=reweight)
     hists, hists_err, binedges = get_vars_hists(divided_vars, divided_weights, binedges=np.linspace(0, 1200, 25), stack_hist_idx=np.arange(1,10), xlabel="reco_end_energy [MeV]")
     #print(hists)
