@@ -33,11 +33,11 @@ def GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro):
         return 9999
 
 def set_bins(KEbins):
-        Nbins = len(KEbins)
-        cKE = (KEbins[:-1] + KEbins[1:])/2 # energy bin centers
-        wKE = (KEbins[:-1] - KEbins[1:])/2 # energy bin half-width
-        Nbins_3D = Nbins**3 # number of bins for the combined variable
-        return Nbins, Nbins_3D, cKE, wKE
+    Nbins = len(KEbins)
+    cKE = (KEbins[:-1] + KEbins[1:])/2 # energy bin centers
+    wKE = (KEbins[:-1] - KEbins[1:])/2 # energy bin half-width
+    Nbins_3D = Nbins**3 # number of bins for the combined variable
+    return Nbins, Nbins_3D, cKE, wKE
 
 def transform_cov_to_corr_matrix(cov): # a useful function to get correlation matrix from a covariance matrix
     corr = np.zeros_like(cov)
