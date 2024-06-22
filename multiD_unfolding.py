@@ -17,6 +17,23 @@ def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
     Nbins_1D = len(f_N1D)
     return f_3D1D_map, f_N1D, f_N1D_err, Nbins_1D
 
+def get_efficiency(f_true_N3D, f_true_N1D, f_true_SID3D, Nbins_3D, pass_selection):
+    f_true_SID3D_sel = f_true_SID3D[pass_selection]
+    f_true_N3D_sel, _ = np.histogram(f_true_SID3D_sel, bins=np.arange(Nbins_3D+1))
+
+    f_eff1D = f_true_N3D_sel[f_true_N3D>0]/f_true_N1D
+    return f_eff1D, f_true_SID3D_sel
+
+def get_response_matrix(f_Nmeasbins, f_Ntruebins, f_meas_hist, f_true_hist):
+    f_response = ROOT.RooUnfoldResponse(f_Nmeasbins, 1, f_Nmeasbins+1, f_Ntruebins, 1, f_Ntruebins+1) # 1D index starts from 1
+    for ievt in range(len(f_meas_hist)):
+        f_response.Fill(f_meas_hist[ievt], f_true_hist[ievt])
+    f_response_matrix = np.zeros([f_Ntruebins, f_Nmeasbins])
+    for ibin in range(f_Ntruebins):
+        for jbin in range(f_Nmeasbins):
+            f_response_matrix[ibin, jbin] = f_response.Hresponse().GetBinContent(jbin+1, ibin+1)
+    return f_response_matrix, f_response
+
 if __name__ == "__main__":
     with open('processedVars.pkl', 'rb') as procfile:
         processedVars = pickle.load(procfile)
@@ -71,3 +88,7 @@ if __name__ == "__main__":
     meas_3D1D_map, meas_N1D, meas_N1D_err, Nmeasbins_1D = map_index_to_combined_variable(meas_N3D, np.sqrt(np.diag(meas_N3D_Vcov)), Nmeasbins)
     #print(true_3D1D_map, true_N1D, true_N1D_err, Ntruebins_1D, sep='\n')
     #print(meas_3D1D_map, meas_N1D, meas_N1D_err, Nmeasbins_1D, sep='\n')
+
+    eff1D, true_SID3D_sel = get_efficiency(true_N3D, true_N1D, true_SID3D, Ntruebins_3D, pass_selection)
+    response_matrix, response = get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[meas_SID3D], true_3D1D_map[true_SID3D_sel])
+    print(eff1D, response_matrix, sep='\n')
