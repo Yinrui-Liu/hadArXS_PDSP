@@ -17,17 +17,17 @@ def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
     Nbins_1D = len(f_N1D)
     return f_3D1D_map, f_N1D, f_N1D_err, Nbins_1D
 
-def get_efficiency(f_true_N3D, f_true_N1D, f_true_SID3D, Nbins_3D, pass_selection):
+def get_efficiency(f_true_N3D, f_true_N1D, f_true_SID3D, Nbins_3D, pass_selection, weight):
     f_true_SID3D_sel = f_true_SID3D[pass_selection]
-    f_true_N3D_sel, _ = np.histogram(f_true_SID3D_sel, bins=np.arange(Nbins_3D+1))
+    f_true_N3D_sel, _ = np.histogram(f_true_SID3D_sel, bins=np.arange(Nbins_3D+1), weights=weight)
 
     f_eff1D = f_true_N3D_sel[f_true_N3D>0]/f_true_N1D
     return f_eff1D, f_true_SID3D_sel
 
-def get_response_matrix(f_Nmeasbins, f_Ntruebins, f_meas_hist, f_true_hist):
+def get_response_matrix(f_Nmeasbins, f_Ntruebins, f_meas_hist, f_true_hist, weight):
     f_response = ROOT.RooUnfoldResponse(f_Nmeasbins, 1, f_Nmeasbins+1, f_Ntruebins, 1, f_Ntruebins+1) # 1D index starts from 1
     for ievt in range(len(f_meas_hist)):
-        f_response.Fill(f_meas_hist[ievt], f_true_hist[ievt])
+        f_response.Fill(f_meas_hist[ievt], f_true_hist[ievt], weight[ievt])
     f_response_matrix = np.zeros([f_Ntruebins, f_Nmeasbins])
     for ibin in range(f_Ntruebins):
         for jbin in range(f_Nmeasbins):
@@ -74,14 +74,14 @@ if __name__ == "__main__":
     divided_recoEend, divided_weights = get_hists.divide_vars_by_partype(reco_end_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
     divided_recoflag, divided_weights = get_hists.divide_vars_by_partype(reco_sigflag, particle_type_bool, mask=combined_true_mask, weight=reweight)
     divided_FullSelection, divided_weights = get_hists.divide_vars_by_partype(mask_FullSelection, particle_type_bool, mask=combined_true_mask, weight=reweight)
-    reco_Eini = divided_recoEini[1]
-    reco_Eend = divided_recoEend[1]
-    reco_flag = divided_recoflag[1]
-    reco_weight = divided_weights[1]
     pass_selection = divided_FullSelection[1]
+    reco_Eini = divided_recoEini[1][pass_selection]
+    reco_Eend = divided_recoEend[1][pass_selection]
+    reco_flag = divided_recoflag[1][pass_selection]
+    reco_weight = divided_weights[1][pass_selection]
     #print(len(reco_Eini), reco_Eini, reco_Eend, reco_flag, reco_weight, pass_selection, sep='\n')
 
-    meas_SIDini, meas_SIDend, meas_SIDint_ex = calcXS.get_sliceID_histograms(reco_Eini[pass_selection], reco_Eend[pass_selection], reco_flag[pass_selection], meas_bins)
+    meas_SIDini, meas_SIDend, meas_SIDint_ex = calcXS.get_sliceID_histograms(reco_Eini, reco_Eend, reco_flag, meas_bins)
     meas_SID3D, meas_N3D, meas_N3D_Vcov = calcXS.get_3D_histogram(meas_SIDini, meas_SIDend, meas_SIDint_ex, Nmeasbins, reco_weight)
 
     true_3D1D_map, true_N1D, true_N1D_err, Ntruebins_1D = map_index_to_combined_variable(true_N3D, np.sqrt(np.diag(true_N3D_Vcov)), Ntruebins)
@@ -89,6 +89,7 @@ if __name__ == "__main__":
     #print(true_3D1D_map, true_N1D, true_N1D_err, Ntruebins_1D, sep='\n')
     #print(meas_3D1D_map, meas_N1D, meas_N1D_err, Nmeasbins_1D, sep='\n')
 
-    eff1D, true_SID3D_sel = get_efficiency(true_N3D, true_N1D, true_SID3D, Ntruebins_3D, pass_selection)
-    response_matrix, response = get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[meas_SID3D], true_3D1D_map[true_SID3D_sel])
+    eff1D, true_SID3D_sel = get_efficiency(true_N3D, true_N1D, true_SID3D, Ntruebins_3D, pass_selection, reco_weight)
+    response_matrix, response = get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[meas_SID3D], true_3D1D_map[true_SID3D_sel], reco_weight)
     print(eff1D, response_matrix, sep='\n')
+    
