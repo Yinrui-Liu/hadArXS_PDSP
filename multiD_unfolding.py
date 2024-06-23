@@ -1,7 +1,7 @@
 from packages import *
 import calcXS
 import get_hists
-from BetheBloch import BetheBloch
+from parameters import true_bins_pionp as true_bins, meas_bins_pionp as meas_bins
 
 def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
     Nbins_3D = Nbins**3
@@ -136,9 +136,7 @@ if __name__ == "__main__":
     true_Eend = divided_trueEend[1]
     true_flag = divided_trueflag[1]
     true_weight = divided_weights[1]
-    true_bins = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
     Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
-    meas_bins = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
     Nmeasbins = len(meas_bins)
     true_SIDini, true_SIDend, true_SIDint_ex = calcXS.get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_bins)
     true_Nini, true_Nend, true_Nint_ex, true_Ninc = calcXS.derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)

@@ -1,6 +1,14 @@
+from packages import *
+
+### energy slicing/binning
+true_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
+meas_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
+
+### fiducial volume
 fidvol_low = 30
 fidvol_upp = 220
 
+### selection parameters
 dxy_min = -1
 dxy_max = 3
 dz_min = -3

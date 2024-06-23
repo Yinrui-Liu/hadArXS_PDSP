@@ -1,6 +1,6 @@
 from packages import *
 from BetheBloch import BetheBloch
-import selection_parameters
+import parameters
 
 class Processor:
     def __init__(self, ntuple, particle, isMC):
@@ -10,9 +10,9 @@ class Processor:
         self.bb = BetheBloch(self.particle.pdg)
         self.isMC = isMC
         if self.isMC:
-            self.fidvol_low = selection_parameters.fidvol_low
+            self.fidvol_low = parameters.fidvol_low
         else:
-            self.fidvol_low = selection_parameters.fidvol_low + self.particle.parBQ["beam_startZ_data"] - self.particle.parBQ["beam_startZ_mc"]
+            self.fidvol_low = parameters.fidvol_low + self.particle.parBQ["beam_startZ_data"] - self.particle.parBQ["beam_startZ_mc"]
 
         # output variables
         self.true_initial_energy = []
@@ -177,7 +177,7 @@ class Processor:
 
 
             # selection
-            mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > selection_parameters.fidvol_low)
+            mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > parameters.fidvol_low)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
             mask_FullSelection = self.particle.PassSelection(evt, reco_trklen=reco_trklen_batch)
 

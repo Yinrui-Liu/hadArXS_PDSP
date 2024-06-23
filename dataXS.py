@@ -3,6 +3,7 @@ import get_hists
 import calcXS
 import multiD_unfolding
 from BetheBloch import BetheBloch
+from parameters import true_bins_pionp as true_bins, meas_bins_pionp as meas_bins
 
 with open('processedVars.pkl', 'rb') as procfile: # data file (either fake or real)
     processedVars = pickle.load(procfile)
@@ -24,9 +25,7 @@ divided_recoflag, divided_weights = get_hists.divide_vars_by_partype(reco_sigfla
 divided_FullSelection, divided_weights = get_hists.divide_vars_by_partype(mask_FullSelection, particle_type, mask=combined_true_mask, weight=reweight)
 
 # measure data
-true_bins = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
 Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
-meas_bins = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
 Nmeasbins = len(meas_bins)
 
 data_pass_selection = divided_FullSelection[0]

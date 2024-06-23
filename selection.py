@@ -1,5 +1,5 @@
 from packages import *
-import selection_parameters
+import parameters
 import utils
 
 class Particle:
@@ -38,9 +38,9 @@ class Particle:
     
     def SetBQparameters(self):
         if self.pdg == 211:
-            self.parBQ = selection_parameters.pionBQ
+            self.parBQ = parameters.pionBQ
         elif self.pdg == 2212:
-            self.parBQ = selection_parameters.protonBQ
+            self.parBQ = parameters.protonBQ
     
     def PassSelection(self, evt, **kwargs):
         if self.pdg == 211:
@@ -109,13 +109,13 @@ def PassBeamQualityCut(evt, parBQ):
     return PassBeamQualityCut_xyz(beam_dxy, beam_dz) & PassBeamQualityCut_angle(beam_costh) & PassBeamQualityCut_inst(inst_dxy) & non_empty_mask
 
 def PassBeamQualityCut_xyz(beam_dxy, beam_dz):
-    return (beam_dxy > selection_parameters.dxy_min) & (beam_dxy < selection_parameters.dxy_max) & (beam_dz > selection_parameters.dz_min) & (beam_dz < selection_parameters.dz_max)
+    return (beam_dxy > parameters.dxy_min) & (beam_dxy < parameters.dxy_max) & (beam_dz > parameters.dz_min) & (beam_dz < parameters.dz_max)
 
 def PassBeamQualityCut_angle(beam_costh):
-    return (beam_costh > selection_parameters.costh_min) & (beam_costh < selection_parameters.costh_max)
+    return (beam_costh > parameters.costh_min) & (beam_costh < parameters.costh_max)
     
 def PassBeamQualityCut_inst(inst_dxy): # beam scraper cut
-    return inst_dxy < selection_parameters.dxy_inst_sq_max
+    return inst_dxy < parameters.dxy_inst_sq_max
 
 def PassFidVolCut(evt, parBQ):
     reco_beam_calo_endZ = evt["reco_beam_calo_endZ"]
@@ -123,11 +123,11 @@ def PassFidVolCut(evt, parBQ):
     mc_indices = isMC == True
     dt_indices = isMC == False
 
-    pass_upper = reco_beam_calo_endZ < selection_parameters.fidvol_upp
+    pass_upper = reco_beam_calo_endZ < parameters.fidvol_upp
 
     pass_lower = np.zeros_like(reco_beam_calo_endZ, dtype=bool)
-    pass_lower[mc_indices] = reco_beam_calo_endZ[mc_indices] > selection_parameters.fidvol_low
-    pass_lower[dt_indices] = reco_beam_calo_endZ[dt_indices] > (selection_parameters.fidvol_low + parBQ["beam_startZ_data"] - parBQ["beam_startZ_mc"])
+    pass_lower[mc_indices] = reco_beam_calo_endZ[mc_indices] > parameters.fidvol_low
+    pass_lower[dt_indices] = reco_beam_calo_endZ[dt_indices] > (parameters.fidvol_low + parBQ["beam_startZ_data"] - parBQ["beam_startZ_mc"])
 
     return pass_upper & pass_lower
 
