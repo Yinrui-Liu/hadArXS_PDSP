@@ -132,7 +132,7 @@ def calculate_XS_Cov_from_3N(f_Ninc, f_Nend, f_Nint_ex, f_3N_Vcov, KEbins, bb):
     M_tar = 39.95 # molar mass (g/mol)
     n_tar = rho_tar*NA/M_tar # number density (cm^{-3})
 
-    Nbins, _, cKE, wKE = set_bins(KEbins)
+    Nbins, _, cKE, wKE = utils.set_bins(KEbins)
     f_XS = np.zeros_like(f_Ninc)
     Jac_3N_XS = np.zeros([Nbins-1, 3*(Nbins-1)])
     for ibin in range(Nbins-1):
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     XS_xerr = true_wKE[1:-1]
     XS_yerr = np.sqrt(np.diagonal(true_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
     plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Extracted true signal cross section")
-    xx = np.linspace(0, 1100, 100)
+    #xx = np.linspace(0, 1100, 100)
     #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
     plt.xlabel("Kinetic energy (MeV)")
     plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2

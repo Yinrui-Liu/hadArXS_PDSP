@@ -1,6 +1,7 @@
 from packages import *
 import calcXS
 import get_hists
+from BetheBloch import BetheBloch
 
 def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
     Nbins_3D = Nbins**3
@@ -33,6 +34,74 @@ def get_response_matrix(f_Nmeasbins, f_Ntruebins, f_meas_hist, f_true_hist, weig
         for jbin in range(f_Nmeasbins):
             f_response_matrix[ibin, jbin] = f_response.Hresponse().GetBinContent(jbin+1, ibin+1)
     return f_response_matrix, f_response
+
+def map_data_to_MC_bins(f_N3D, f_N3D_err, f_3D1D_map):
+    Nbins_3D = len(f_3D1D_map)
+    for ibin in range(Nbins_3D):
+        if f_N3D[ibin] > 0 and f_3D1D_map[ibin] == 0:
+            print("Not empty in data but empty in MC.")
+    f_N1D = f_N3D[f_3D1D_map>0]
+    f_N1D_err = f_N3D_err[f_3D1D_map>0]
+    return f_N1D, f_N1D_err
+
+def unfolding(f_data_meas_N1D, f_data_meas_V1D, f_response, Nmeasbins, Ntruebins, niter=4):
+    hMeas = ROOT.TH1D ("hmeas", "", Nmeasbins, 0, Nmeasbins)
+    for ibin in range(Nmeasbins):
+        hMeas.SetBinContent(ibin+1, f_data_meas_N1D[ibin])
+    
+    uf = ROOT.RooUnfoldBayes(f_response, hMeas, niter=niter)
+    data_meas_V1D_TM = ROOT.TMatrix(Nmeasbins, Nmeasbins)
+    for ibin in range(Nmeasbins):
+        for jbin in range(Nmeasbins):
+            data_meas_V1D_TM[ibin, jbin] = f_data_meas_V1D[ibin, jbin]
+    uf.SetMeasuredCov(data_meas_V1D_TM)
+    
+    hUnfold = uf.Hunfold()
+    VUnfold = uf.Eunfold()
+    
+    f_data_unfold = np.zeros(Ntruebins)
+    f_data_unfold_cov = np.zeros([Ntruebins, Ntruebins])
+    for ibin in range(Ntruebins):
+        f_data_unfold[ibin] = hUnfold.GetBinContent(ibin+1)
+        for jbin in range(Ntruebins):
+            f_data_unfold_cov[ibin, jbin] = VUnfold[ibin, jbin]
+    return f_data_unfold, f_data_unfold_cov
+
+def efficiency_correct_1Dvar(f_data_unfold, f_data_unfold_cov, f_eff1D, f_true_3D1D_map, f_Ntruebins_3D, f_true_N3D, f_true_N3D_Vcov, f_data_MC_scale):
+    f_unfd_N3D = np.zeros(f_Ntruebins_3D)
+    f_unfd_N3D_Vcov = np.zeros([f_Ntruebins_3D, f_Ntruebins_3D])
+    for ibin in range(f_Ntruebins_3D):
+        if f_true_3D1D_map[ibin] > 0:
+            if f_data_unfold[f_true_3D1D_map[ibin]-1] > 0:
+                f_unfd_N3D[ibin] = f_data_unfold[f_true_3D1D_map[ibin]-1] / f_eff1D[f_true_3D1D_map[ibin]-1]
+                for jbin in range(f_Ntruebins_3D):
+                    if f_true_3D1D_map[jbin] > 0 and f_data_unfold[f_true_3D1D_map[jbin]-1] > 0:
+                        f_unfd_N3D_Vcov[ibin, jbin] = f_data_unfold_cov[f_true_3D1D_map[ibin]-1, f_true_3D1D_map[jbin]-1] / (f_eff1D[f_true_3D1D_map[ibin]-1]*f_eff1D[f_true_3D1D_map[jbin]-1])
+            elif f_eff1D[f_true_3D1D_map[ibin]-1] == 0:
+                #print(data_unfold[true_3D1D_map[ibin]-1], true_N1D[true_3D1D_map[ibin]-1])
+                f_unfd_N3D[ibin] = f_true_N3D[ibin]*f_data_MC_scale
+                f_unfd_N3D_Vcov[ibin, ibin] = f_true_N3D_Vcov[ibin, ibin]*f_data_MC_scale*f_data_MC_scale
+    #f_unfd_N3D_err = np.sqrt(np.diag(f_unfd_N3D_Vcov))
+    return f_unfd_N3D, f_unfd_N3D_Vcov
+
+def get_unfold_histograms(f_unfd_N3D, f_Ntruebins):
+    f_unfd_N3D_real3D = np.reshape(f_unfd_N3D, [f_Ntruebins, f_Ntruebins, f_Ntruebins])
+    f_unfd_Nini = f_unfd_N3D_real3D.sum((0,1))[1:]
+    f_unfd_Nend = f_unfd_N3D_real3D.sum((0,2))[1:]
+    f_unfd_Nint_ex = f_unfd_N3D_real3D.sum((1,2))[1:]
+    f_unfd_Ninc = np.zeros_like(f_unfd_Nini)
+    for ibin in range(f_Ntruebins-1):
+        ## two equivalent way to calculate the incident histogram
+        for itmp in range(0, ibin+1):
+            f_unfd_Ninc[ibin] += f_unfd_Nini[itmp]
+        for itmp in range(0, ibin):
+            f_unfd_Ninc[ibin] -= f_unfd_Nend[itmp]
+        '''for itmp in range(ibin, f_Ntruebins-1):
+            f_unfd_Ninc[ibin] += f_unfd_Nend[itmp]
+        for itmp in range(ibin+1, f_Ntruebins-1):
+            f_unfd_Ninc[ibin] -= f_unfd_Nini[itmp]'''
+    return f_unfd_Nini, f_unfd_Nend, f_unfd_Nint_ex, f_unfd_Ninc
+
 
 if __name__ == "__main__":
     with open('processedVars.pkl', 'rb') as procfile:
@@ -95,7 +164,7 @@ if __name__ == "__main__":
     '''with open('response.pkl', 'wb') as savefile:
         pickle.dump({"eff1D":}, savefile)'''
 
-    eff1D_upperr = []
+    '''eff1D_upperr = []
     eff1D_lowerr = []
     for ii in range(len(eff1D)):
         # disable error calculation since ClopperPearson does not include weights
@@ -117,4 +186,49 @@ if __name__ == "__main__":
     #plt.xlim([-10,Nmeasbins_1D+10])
     #plt.ylim([-10,Ntruebins_1D+10])
     plt.colorbar(label="Counts")
+    plt.show()'''
+
+    # measure fake data
+    data_pass_selection = divided_FullSelection[0]
+    data_reco_Eini = divided_recoEini[0][data_pass_selection]
+    data_reco_Eend = divided_recoEend[0][data_pass_selection]
+    data_reco_flag = divided_recoflag[0][data_pass_selection]
+    data_reco_weight = divided_weights[0][data_pass_selection]
+    data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex = calcXS.get_sliceID_histograms(data_reco_Eini, data_reco_Eend, data_reco_flag, meas_bins)
+    data_meas_SID3D, data_meas_N3D, data_meas_N3D_Vcov = calcXS.get_3D_histogram(data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex, Nmeasbins, data_reco_weight)
+    data_meas_N1D, data_meas_N1D_err = map_data_to_MC_bins(data_meas_N3D, np.sqrt(np.diag(data_meas_N3D_Vcov)), meas_3D1D_map)
+    data_meas_V1D = np.diag(data_meas_N1D_err*data_meas_N1D_err)
+    #print(data_meas_N1D, data_meas_N1D_err, sep='\n')
+
+    data_MC_scale = sum(data_meas_N1D)/sum(meas_N1D)
+    data_unfold, data_unfold_cov = unfolding(data_meas_N1D, data_meas_V1D, response, Nmeasbins_1D, Ntruebins_1D, niter=10)
+    unfd_N3D, unfd_N3D_Vcov = efficiency_correct_1Dvar(data_unfold, data_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, true_N3D, true_N3D_Vcov, data_MC_scale)
+    unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = get_unfold_histograms(unfd_N3D, Ntruebins)
+    #print(unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc, sep='\n')
+
+    unfd_3SID_Vcov = calcXS.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
+    unfd_3N_Vcov = calcXS.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
+    unfd_XS, unfd_XS_Vcov = calcXS.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(211))
+    
+    '''plt.figure(figsize=[8,4.8])
+    XS_x = true_cKE[1:-1] # the underflow and overflow bin are not used
+    XS_y = unfd_XS[1:-1]
+    XS_xerr = true_wKE[1:-1]
+    XS_yerr = np.sqrt(np.diagonal(unfd_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
+    plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Signal XS using unfolded result")
+    #xx = np.linspace(0, 1100, 100)
+    #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
+    plt.xlabel("Kinetic energy (MeV)")
+    plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
+    plt.xlim([0,1000])
+    plt.ylim(bottom=0)
     plt.show()
+
+    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(unfd_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
+    plt.title(r"Correlation matrix for cross section")
+    plt.xticks(true_bins[1:-1])
+    plt.yticks(true_bins[1:-1])
+    plt.xlabel(r"Kinetic energy (MeV)")
+    plt.ylabel(r"Kinetic energy (MeV)")
+    plt.colorbar()
+    plt.show()'''
