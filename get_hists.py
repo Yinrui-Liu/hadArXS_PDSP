@@ -39,7 +39,7 @@ def get_vars_hists(var_list, weight_list, binedges=None, stack_hist_idx=[], xlab
         plt.clf()
     return hists, hists_err, binedges
 
-def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, bkg_scale=None, bkg_scale_err=None):
+def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, mc2data_scale=1, bkg_scale=None, bkg_scale_err=None): # expect bkg_scale as an array with the same length as bkg_hists (nbkgs)
     sig_hist = np.array(data_hist)
     sig_hist_err_sq = np.power(data_hist_err, 2)
     nbins = len(data_hist)
@@ -49,8 +49,8 @@ def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, bkg_scal
         bkg_scale_err = np.zeros(nbkgs)
     for ih in range(nbins):
         for ib in range(nbkgs):
-            sig_hist[ih] -= (bkg_hists[ib][ih] * bkg_scale[ib])
-            sig_hist_err_sq[ih] += (np.power(bkg_hists_err[ib][ih]*bkg_scale[ib], 2) + np.power(bkg_hists[ib][ih]*bkg_scale_err[ib], 2))
+            sig_hist[ih] -= (bkg_hists[ib][ih]*mc2data_scale * bkg_scale[ib])
+            sig_hist_err_sq[ih] += (np.power(bkg_hists_err[ib][ih]*mc2data_scale * bkg_scale[ib], 2) + np.power(bkg_hists[ib][ih]*mc2data_scale * bkg_scale_err[ib], 2))
     sig_hist_err = np.sqrt(sig_hist_err_sq)
     return sig_hist, sig_hist_err
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     divided_vars, divided_weights = divide_vars_by_partype(reco_end_energy, particle_type, mask=(mask_SelectedPart&mask_FullSelection), weight=reweight)
     hists, hists_err, binedges = get_vars_hists(divided_vars, divided_weights, binedges=np.linspace(0, 1200, 25), stack_hist_idx=np.arange(1,10), xlabel="reco_end_energy [MeV]")
     #print(hists)
-    sig_hist, sig_hist_err = bkg_subtraction(hists[0], hists_err[0], hists[3:-1], hists_err[3:-1], bkg_scale=None, bkg_scale_err=None)
+    sig_hist, sig_hist_err = bkg_subtraction(hists[0], hists_err[0], hists[3:-1], hists_err[3:-1], mc2data_scale=1, bkg_scale=None, bkg_scale_err=None)
     print(sig_hist, sig_hist_err)
     plt.bar((binedges[:-1]+binedges[1:])/2, sig_hist, width=binedges[1:]-binedges[:-1], color='lightblue', edgecolor='black', alpha=0.7)
     plt.errorbar((binedges[:-1]+binedges[1:])/2, sig_hist, yerr=sig_hist_err, fmt='o', color='red', markersize=1)

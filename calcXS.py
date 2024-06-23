@@ -69,7 +69,7 @@ def get_3D_histogram(f_SIDini, f_SIDend, f_SIDint_ex, Nbins, f_evtweight=None):
         f_evtweight = np.ones(f_Nevts)
     Nbins_3D = Nbins**3
     f_N3D = np.zeros(Nbins_3D)
-    f_N3D_err = np.zeros(Nbins_3D)
+    f_N3D_errsq = np.zeros(Nbins_3D)
     f_SID3D = np.zeros(f_Nevts, dtype=np.int32)
     
     for ievt in range(f_Nevts): # fill in the combined variable
@@ -82,9 +82,9 @@ def get_3D_histogram(f_SIDini, f_SIDend, f_SIDint_ex, Nbins, f_evtweight=None):
         f_SID3D[ievt] = SID3D
         
         f_N3D[SID3D] += weight
-        f_N3D_err[SID3D] += weight*weight
+        f_N3D_errsq[SID3D] += weight*weight
         
-    f_N3D_Vcov = np.diag(f_N3D_err) # this is a fill process. Each bin is independent, so the covariance matrix is diagonal
+    f_N3D_Vcov = np.diag(f_N3D_errsq) # this is a fill process. Each bin is independent, so the covariance matrix is diagonal
     return f_SID3D, f_N3D, f_N3D_Vcov
 
 def get_Cov_3SID_from_N3D(f_N3D_Vcov, Nbins):

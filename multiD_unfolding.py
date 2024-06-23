@@ -189,7 +189,7 @@ if __name__ == "__main__":
     plt.colorbar(label="Counts")
     plt.show()'''
 
-    with open('response.pkl', 'wb') as respfile:
+    with open('response.pkl', 'wb') as respfile: # save the response modeled by MC
         responseVars = {}
         responseVars["response_matrix"] = response.Hresponse()
         responseVars["response_truth"] = response.Htruth()
