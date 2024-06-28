@@ -157,7 +157,7 @@ def calculate_XS_Cov_from_3N(f_Ninc, f_Nend, f_Nint_ex, f_3N_Vcov, KEbins, bb):
     return f_XS, f_XS_Vcov
 
 if __name__ == "__main__":
-    with open('processedVars.pkl', 'rb') as procfile:
+    with open('processedVars_piMC.pkl', 'rb') as procfile:
         processedVars = pickle.load(procfile)
 
     mask_TrueSignal = processedVars["mask_TrueSignal"]
@@ -176,15 +176,27 @@ if __name__ == "__main__":
     true_weight = divided_weights[0]
     print(len(true_Eini), true_Eini, true_Eend, true_flag, true_weight, sep='\n')
 
+    beamPDG = 211
     true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
+    #true_bins = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
     Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
     true_SIDini, true_SIDend, true_SIDint_ex = get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_bins)
     true_Nini, true_Nend, true_Nint_ex, true_Ninc = derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
     true_SID3D, true_N3D, true_N3D_Vcov = get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
     true_3SID_Vcov = get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
     true_3N_Vcov = get_Cov_3N_from_3SID(true_3SID_Vcov, Ntruebins)
-    true_XS, true_XS_Vcov = calculate_XS_Cov_from_3N(true_Ninc, true_Nend, true_Nint_ex, true_3N_Vcov, true_bins, BetheBloch(211))
+    true_XS, true_XS_Vcov = calculate_XS_Cov_from_3N(true_Ninc, true_Nend, true_Nint_ex, true_3N_Vcov, true_bins, BetheBloch(beamPDG))
 
+    if beamPDG == 211:
+        simcurvefile_name = "/Users/lyret/exclusive_xsec.root"
+        simcurve_name = "total_inel_KE"
+    elif beamPDG == 2212:
+        simcurvefile_name = "/Users/lyret/proton_cross_section.root"
+        simcurve_name = "inel_KE"
+    simcurvefile = uproot.open(simcurvefile_name)
+    simcurvegraph = simcurvefile[simcurve_name]
+    simcurve = simcurvegraph.values()
+    
     plt.figure(figsize=[8,4.8])
     XS_x = true_cKE[1:-1] # the underflow and overflow bin are not used
     XS_y = true_XS[1:-1]
@@ -193,16 +205,18 @@ if __name__ == "__main__":
     plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Extracted true signal cross section")
     #xx = np.linspace(0, 1100, 100)
     #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
+    plt.plot(*simcurve, label="Signal cross section used in simulation")
     plt.xlabel("Kinetic energy (MeV)")
     plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
-    plt.xlim([0,1000])
+    plt.xlim([true_bins[-1], true_bins[0]])
     plt.ylim(bottom=0)
+    plt.legend()
     plt.show()
 
-    plt.imshow(utils.transform_cov_to_corr_matrix(true_XS_Vcov[1:-1, 1:-1]), origin="lower", cmap="RdBu_r", vmin=-1, vmax=1, extent = [950,50,950,50])
+    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(true_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
     plt.title(r"Correlation matrix for cross section")
-    plt.xticks([950,850,750,650,550,450,350,250,150,50])
-    plt.yticks([950,850,750,650,550,450,350,250,150,50])
+    plt.xticks(true_bins[1:-1])
+    plt.yticks(true_bins[1:-1])
     plt.xlabel(r"Kinetic energy (MeV)")
     plt.ylabel(r"Kinetic energy (MeV)")
     plt.colorbar()
