@@ -3,8 +3,8 @@ import get_hists
 
 
 use_real_data = True
-beampdg = 211
-binedges = np.linspace(0, 1200, 25)
+beampdg = 2212
+binedges = np.linspace(0, 600, 100)
 xlabel = "reco_end_energy [MeV]"
 
 partypedict_pionp = {

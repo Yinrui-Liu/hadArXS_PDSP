@@ -24,7 +24,7 @@ def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, KEbins):
                 break
         
         ## remove incomplete slices
-        if SID_end < SID_ini:
+        if SID_end < SID_ini: # SID_end == SID_ini - 1
             SID_ini = -1
             SID_end = -1
             
@@ -157,14 +157,18 @@ def calculate_XS_Cov_from_3N(f_Ninc, f_Nend, f_Nint_ex, f_3N_Vcov, KEbins, bb):
     return f_XS, f_XS_Vcov
 
 if __name__ == "__main__":
-    with open('processedVars_piMC.pkl', 'rb') as procfile:
+    beamPDG = 2212
+    #true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
+    true_bins = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
+    with open('processedVars_pMC.pkl', 'rb') as procfile:
         processedVars = pickle.load(procfile)
 
     mask_TrueSignal = processedVars["mask_TrueSignal"]
     true_initial_energy = processedVars["true_initial_energy"]
     true_end_energy = processedVars["true_end_energy"]
     true_sigflag = processedVars["true_sigflag"]
-    particle_type = processedVars["particle_type"]
+    #particle_type = processedVars["particle_type"]
+    particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
     reweight = processedVars["reweight"]
 
     divided_trueEini, divided_weights = get_hists.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
@@ -176,9 +180,6 @@ if __name__ == "__main__":
     true_weight = divided_weights[0]
     print(len(true_Eini), true_Eini, true_Eend, true_flag, true_weight, sep='\n')
 
-    beamPDG = 211
-    true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
-    #true_bins = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
     Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
     true_SIDini, true_SIDend, true_SIDint_ex = get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_bins)
     true_Nini, true_Nend, true_Nint_ex, true_Ninc = derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)

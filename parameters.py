@@ -3,6 +3,8 @@ from packages import *
 ### energy slicing/binning
 true_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
 meas_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
+true_bins_proton = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
+meas_bins_proton = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
 
 ### fiducial volume
 fidvol_low = 30

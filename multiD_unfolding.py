@@ -1,7 +1,7 @@
 from packages import *
 import calcXS
 import get_hists
-from parameters import true_bins_pionp as true_bins, meas_bins_pionp as meas_bins
+import parameters
 
 def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
     Nbins_3D = Nbins**3
@@ -109,8 +109,16 @@ def get_unfold_histograms(f_unfd_N3D, f_Ntruebins):
 
 
 if __name__ == "__main__":
-    with open('processedVars.pkl', 'rb') as procfile:
+    beamPDG = 2212
+    with open('processedVars_pMC.pkl', 'rb') as procfile:
         processedVars = pickle.load(procfile)
+
+    if beamPDG == 211:
+        true_bins = parameters.true_bins_pionp
+        meas_bins = parameters.meas_bins_pionp
+    elif beamPDG == 2212:
+        true_bins = parameters.true_bins_proton
+        meas_bins = parameters.meas_bins_proton
 
     mask_TrueSignal = processedVars["mask_TrueSignal"]
     mask_SelectedPart = processedVars["mask_SelectedPart"]

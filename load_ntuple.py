@@ -5,6 +5,8 @@ import MCreweight
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
+beamPDG = 2212
+
 PDSP_ntuple = uproot.open(f"/Users/lyret/{PDSP_ntuple_name}.root")
 if "MC" in PDSP_ntuple_name:
     isMC = True
@@ -54,13 +56,14 @@ variables_to_load = [
     "true_beam_startP",
 ]
 
-pionp = selection.Particle(211, 139.57)
-pionp.SetCandidatePDGlist([-13, 13, 211])
+if beamPDG == 211:
+    particle = selection.Particle(beamPDG, 139.57)
+    particle.SetCandidatePDGlist([-13, 13, 211])
+elif beamPDG == 2212:
+    particle = selection.Particle(beamPDG, 938.272)
+    particle.SetCandidatePDGlist(2212)
 
-proton = selection.Particle(2212, 938.272)
-proton.SetCandidatePDG(2212)
-
-eventset = Processor(pduneana, pionp, isMC)
+eventset = Processor(pduneana, particle, isMC)
 eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=None)
 processedVars = eventset.GetOutVarsDict()

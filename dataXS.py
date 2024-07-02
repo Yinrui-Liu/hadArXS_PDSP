@@ -3,11 +3,23 @@ import get_hists
 import calcXS
 import multiD_unfolding
 from BetheBloch import BetheBloch
-from parameters import true_bins_pionp as true_bins, meas_bins_pionp as meas_bins
+import parameters
 
+
+beamPDG = 2212
+datafilename = "processedVars_pdata.pkl"
+MCfilename = "processedVars_pMC.pkl"
+resfilename = "response.pkl"
+
+if beamPDG == 211:
+    true_bins = parameters.true_bins_pionp
+    meas_bins = parameters.meas_bins_pionp
+elif beamPDG == 2212:
+    true_bins = parameters.true_bins_proton
+    meas_bins = parameters.meas_bins_proton
 
 ### load data histograms
-with open('processedVars.pkl', 'rb') as datafile: # either fake data or real data
+with open(datafilename, 'rb') as datafile: # either fake data or real data
     processedVars = pickle.load(datafile)
 
 mask_SelectedPart = processedVars["mask_SelectedPart"]
@@ -40,7 +52,7 @@ data_meas_N3D_err = np.sqrt(np.diag(data_meas_N3D_Vcov))
 
 ### background subtraction
 print("### background subtraction")
-with open('processedVars.pkl', 'rb') as mcfile: # truth MC
+with open(MCfilename, 'rb') as mcfile: # truth MC
     processedVars_mc = pickle.load(mcfile)
 
 mask_SelectedPart_mc = processedVars_mc["mask_SelectedPart"]
@@ -67,14 +79,14 @@ for ibkg in range(3, len(divided_recoEini_mc)):
     bkg_meas_N3D_list.append(bkg_meas_N3D)
     bkg_meas_N3D_err_list.append(np.sqrt(np.diag(bkg_meas_N3D_Vcov)))
 
-bkg_scale = [1,1,1,1,1,1,1] # should be imported from sideband fit
-bkg_scale_err = [0,0,0,0,0,0,0]
+bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.97, 1, 1.71, 1.20, 0.97, 1, 1]
+bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.15, 0.12, 0.12, 0, 0]
 sig_meas_N3D, sig_meas_N3D_err = get_hists.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err)
 
 
 ### unfolding
 print("### unfolding")
-with open('response.pkl', 'rb') as respfile: # unfolding vars modeled by MC
+with open(resfilename, 'rb') as respfile: # unfolding vars modeled by MC
     responseVars = pickle.load(respfile)
 response_matrix = responseVars["response_matrix"]
 response_truth = responseVars["response_truth"]
@@ -92,7 +104,7 @@ sig_meas_V1D = np.diag(sig_meas_N1D_err*sig_meas_N1D_err)
 #print(sig_meas_N1D, sig_meas_N1D_err, sep='\n')
 
 sig_MC_scale = sum(sig_meas_N1D)/sum(meas_N3D)
-sig_unfold, sig_unfold_cov = multiD_unfolding.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=10)
+sig_unfold, sig_unfold_cov = multiD_unfolding.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=23)
 unfd_N3D, unfd_N3D_Vcov = multiD_unfolding.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, true_N3D, true_N3D_Vcov, sig_MC_scale)
 unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD_unfolding.get_unfold_histograms(unfd_N3D, Ntruebins)
 #print(unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc, sep='\n')
@@ -101,7 +113,19 @@ unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD_unfolding.get_unfold_hist
 ### calculate cross section
 unfd_3SID_Vcov = calcXS.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
 unfd_3N_Vcov = calcXS.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
-unfd_XS, unfd_XS_Vcov = calcXS.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(211))
+unfd_XS, unfd_XS_Vcov = calcXS.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
+
+
+### plot
+if beamPDG == 211:
+    simcurvefile_name = "/Users/lyret/exclusive_xsec.root"
+    simcurve_name = "total_inel_KE"
+elif beamPDG == 2212:
+    simcurvefile_name = "/Users/lyret/proton_cross_section.root"
+    simcurve_name = "inel_KE"
+simcurvefile = uproot.open(simcurvefile_name)
+simcurvegraph = simcurvefile[simcurve_name]
+simcurve = simcurvegraph.values()
 
 plt.figure(figsize=[8,4.8])
 XS_x = true_cKE[1:-1] # the underflow and overflow bin are not used
@@ -111,9 +135,10 @@ XS_yerr = np.sqrt(np.diagonal(unfd_XS_Vcov))[1:-1] # get the uncertainty from th
 plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Signal XS using unfolded result")
 #xx = np.linspace(0, 1100, 100)
 #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
+plt.plot(*simcurve, label="Signal cross section used in simulation")
 plt.xlabel("Kinetic energy (MeV)")
 plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
-plt.xlim([0,1000])
+plt.xlim(([true_bins[-1], true_bins[0]]))
 plt.ylim(bottom=0)
 plt.show()
 

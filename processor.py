@@ -58,6 +58,11 @@ class Processor:
             beam_inst_P = evt["beam_inst_P"]
             beam_inst_KE = np.sqrt( np.power(beam_inst_P*1000, 2) + self.particle.mass**2 ) - self.particle.mass
             upstream_energy_loss = GetUpstreamEnergyLoss(beam_inst_KE, self.particle.pdg)
+            if self.isMC:
+                if self.particle.pdg == 211:
+                    beam_inst_KE += np.random.normal(-9.19, 21.61, Nbatch) # pionp Gaus(-9.19, 21.61), proton Gaus(3.45, 0)
+                elif self.particle.pdg == 2212:
+                    beam_inst_KE += np.random.normal(3.45, 0, Nbatch)
             reco_frontfaceKE = beam_inst_KE - upstream_energy_loss
             reco_trklen_batch = np.zeros(Nbatch)
 
@@ -73,49 +78,50 @@ class Processor:
             
             true_endZ = []
             for ievt in range(Nbatch):
-                ## calculate true length and true energies
-                trueX = true_beam_traj_X[ievt]
-                trueY = true_beam_traj_Y[ievt]
-                trueZ = true_beam_traj_Z[ievt]
-                true_accum_len = np.zeros_like(trueZ)
-                Ntrue_traj_pts = len(trueZ)
-                true_endZ.append(trueZ[-1])
+                if self.isMC:
+                    ## calculate true length and true energies
+                    trueX = true_beam_traj_X[ievt]
+                    trueY = true_beam_traj_Y[ievt]
+                    trueZ = true_beam_traj_Z[ievt]
+                    true_accum_len = np.zeros_like(trueZ)
+                    Ntrue_traj_pts = len(trueZ)
+                    true_endZ.append(trueZ[-1])
 
-                # calculate true length
-                true_trklen = 0.
-                for ii in range(1, Ntrue_traj_pts):
-                    true_trklen += np.sqrt(
-                        np.power(trueX[ii] - trueX[ii-1], 2) +
-                        np.power(trueY[ii] - trueY[ii-1], 2) +
-                        np.power(trueZ[ii] - trueZ[ii-1], 2)
-                    )
-                    true_accum_len[ii] = true_trklen
-                
-                # calculate true energies
-                trueKE = true_beam_traj_KE[ievt]
-                true_Eini = -999.
-                true_Eend = -999.
-                start_idx = -1
-                for ii in range(Ntrue_traj_pts):
-                    if trueZ[ii] > self.fidvol_low:
-                        start_idx = ii
-                        break
+                    # calculate true length
+                    true_trklen = 0.
+                    for ii in range(1, Ntrue_traj_pts):
+                        true_trklen += np.sqrt(
+                            np.power(trueX[ii] - trueX[ii-1], 2) +
+                            np.power(trueY[ii] - trueY[ii-1], 2) +
+                            np.power(trueZ[ii] - trueZ[ii-1], 2)
+                        )
+                        true_accum_len[ii] = true_trklen
+                    
+                    # calculate true energies
+                    trueKE = true_beam_traj_KE[ievt]
+                    true_Eini = -999.
+                    true_Eend = -999.
+                    start_idx = -1
+                    for ii in range(Ntrue_traj_pts):
+                        if trueZ[ii] > self.fidvol_low:
+                            start_idx = ii
+                            break
 
-                if start_idx >= 0:
-                    traj_max = Ntrue_traj_pts - 1
-                    temp = traj_max
-                    while trueKE[temp] == 0:
-                        temp -= 1
-                    true_Eend = self.bb.KE_at_length(trueKE[temp], true_accum_len[traj_max] - true_accum_len[temp])
+                    if start_idx >= 0:
+                        traj_max = Ntrue_traj_pts - 1
+                        temp = traj_max
+                        while trueKE[temp] == 0:
+                            temp -= 1
+                        true_Eend = self.bb.KE_at_length(trueKE[temp], true_accum_len[traj_max] - true_accum_len[temp])
 
-                    if start_idx == traj_max:
-                        true_Eini = trueKE[temp]
-                    else:
-                        true_Eini = trueKE[start_idx]
-                
-                self.true_initial_energy.append(true_Eini)
-                self.true_end_energy.append(true_Eend)
-                self.true_track_length.append(true_trklen)
+                        if start_idx == traj_max:
+                            true_Eini = trueKE[temp]
+                        else:
+                            true_Eini = trueKE[start_idx]
+                    
+                    self.true_initial_energy.append(true_Eini)
+                    self.true_end_energy.append(true_Eend)
+                    self.true_track_length.append(true_trklen)
 
                 ## calculate reco length and reco energies
                 recoX = reco_beam_calo_X[ievt]
@@ -177,7 +183,10 @@ class Processor:
 
 
             # selection
-            mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > parameters.fidvol_low)
+            if self.isMC:
+                mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > parameters.fidvol_low)
+            else:
+                mask_TrueSignal = np.zeros_like(true_beam_PDG, dtype=bool)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
             mask_FullSelection = self.particle.PassSelection(evt, reco_trklen=reco_trklen_batch)
 
@@ -293,4 +302,3 @@ def GetParticleType(pdg_mode, isMC, isFake, beam_matched, isCosmic, true_particl
             else:
                 return 2 # PElas
         return 8
-            

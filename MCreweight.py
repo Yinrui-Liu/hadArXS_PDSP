@@ -8,10 +8,12 @@ def cal_bkg_reweight(eventset):
         return weight
     
     mufrac = 1.71
-    weight[(true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1)] *= mufrac
+    #weight[(true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1)] *= mufrac
+    weight = np.where((true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1), weight * mufrac, weight)
     return weight
 
 def cal_momentum_reweight(eventset, rdm_radius=0, rdm_angle=0):
+    true_beam_PDG = eventset.true_beam_PDG
     true_beam_startP = eventset.true_beam_startP
     weight = np.ones_like(true_beam_startP)
     if not eventset.isMC:
@@ -48,8 +50,7 @@ def cal_momentum_reweight(eventset, rdm_radius=0, rdm_angle=0):
 
     deno = np.exp(-np.power((true_beam_startP - mom_mu0) / mom_sigma0, 2) / 2)
     numo = np.exp(-np.power((true_beam_startP - mom_mu) / mom_sigma, 2) / 2)
-    weight *= numo
-    weight /= deno
+    weight = np.where(true_beam_PDG == eventset.particle.pdg, weight * numo/deno, weight)
     wlimit = 3. # avoid large weight
     weight = np.clip(weight, 1/wlimit, wlimit)
 
