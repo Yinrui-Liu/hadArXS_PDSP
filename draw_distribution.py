@@ -61,6 +61,9 @@ if use_real_data:
     combined_mask_data = mask_SelectedPart_data & mask_FullSelection_data
     particle_type_data = processedVars_data["particle_type"]
     reweight_data = processedVars_data["reweight"]
+    reco_trklen_data = processedVars_data["reco_track_length"]
+    reco_sigflag_data = processedVars_data["reco_sigflag"]
+    reco_containing_data = processedVars_data["reco_containing"]
 
 with open(f'processedVars_{infile}MC.pkl', 'rb') as mcfile:
     processedVars_mc = pickle.load(mcfile)
@@ -71,6 +74,9 @@ mask_FullSelection_mc = processedVars_mc["mask_FullSelection"]
 combined_mask_mc = mask_SelectedPart_mc & mask_FullSelection_mc
 particle_type_mc = processedVars_mc["particle_type"]
 reweight_mc = processedVars_mc["reweight"]
+reco_trklen_mc = processedVars_mc["reco_track_length"]
+reco_sigflag_mc = processedVars_mc["reco_sigflag"]
+reco_containing_mc = processedVars_mc["reco_containing"]
 
 divided_vars_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
 Nmc_sep = [sum(i) for i in divided_weights_mc[1:]]

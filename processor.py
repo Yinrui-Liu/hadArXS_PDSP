@@ -18,10 +18,12 @@ class Processor:
         self.true_initial_energy = []
         self.true_end_energy = []
         self.true_sigflag = []
+        self.true_containing = []
         self.true_track_length = []
         self.reco_initial_energy = []
         self.reco_end_energy = []
         self.reco_sigflag = []
+        self.reco_containing = []
         self.reco_track_length = []
         self.true_beam_PDG = np.array([])
         self.mask_TrueSignal = np.array([])
@@ -112,15 +114,22 @@ class Processor:
                         temp = traj_max
                         while trueKE[temp] == 0:
                             temp -= 1
-                        true_Eend = self.bb.KE_at_length(trueKE[temp], true_accum_len[traj_max] - true_accum_len[temp])
-
                         if start_idx == traj_max:
                             true_Eini = trueKE[temp]
                         else:
                             true_Eini = trueKE[start_idx]
                     
+                        if trueZ[-1] < parameters.fidvol_upp:
+                            true_Eend = self.bb.KE_at_length(trueKE[temp], true_accum_len[traj_max] - true_accum_len[temp])
+                        else: # non-containing tracks
+                            idx = temp
+                            while trueZ[idx] > parameters.fidvol_upp:
+                                idx -= 1
+                            true_Eend = self.bb.KE_at_length(trueKE[idx], (true_accum_len[idx+1]-true_accum_len[idx])*(parameters.fidvol_upp-trueZ[idx])/(trueZ[idx+1]-trueZ[idx]) )
+
                     self.true_initial_energy.append(true_Eini)
                     self.true_end_energy.append(true_Eend)
+                    self.true_containing.append(trueZ[-1] < parameters.fidvol_upp)
                     self.true_track_length.append(true_trklen)
 
                 ## calculate reco length and reco energies
@@ -145,6 +154,7 @@ class Processor:
                 reco_KEff = reco_frontfaceKE[ievt]
                 reco_Eini = -999.
                 reco_Eend = -999.
+                reco_isContaining = True
                 start_idx = -1
                 for ii in range(Nreco_traj_pts):
                     if recoZ[ii] > self.fidvol_low:
@@ -152,11 +162,21 @@ class Processor:
                         break
 
                 if start_idx >= 0:
-                    reco_Eini = self.bb.KE_at_length(reco_KEff, reco_accum_len[start_idx])
-                    reco_Eend = self.bb.KE_at_length(reco_KEff, reco_trklen)
+                    if recoZ[start_idx] < parameters.fidvol_upp:
+                        reco_Eini = self.bb.KE_at_length(reco_KEff, reco_accum_len[start_idx])
+                        
+                        if recoZ[-1] < parameters.fidvol_upp:
+                            reco_Eend = self.bb.KE_at_length(reco_KEff, reco_trklen)
+                        else: # non-containing tracks
+                            idx = Nreco_traj_pts - 1
+                            while recoZ[idx] > parameters.fidvol_upp:
+                                idx -= 1
+                            reco_Eend = self.bb.KE_at_length(reco_KEff, reco_accum_len[idx] + (reco_accum_len[idx+1]-reco_accum_len[idx])*(parameters.fidvol_upp-recoZ[idx])/(recoZ[idx+1]-recoZ[idx]) )
+                            reco_isContaining = False
                 
                 self.reco_initial_energy.append(reco_Eini)
                 self.reco_end_energy.append(reco_Eend)
+                self.reco_containing.append(reco_isContaining)
                 self.reco_track_length.append(reco_trklen)
 
                 # get particle type
@@ -209,10 +229,12 @@ class Processor:
         self.true_initial_energy = np.array(self.true_initial_energy)
         self.true_end_energy = np.array(self.true_end_energy)
         self.true_sigflag = np.array(self.true_sigflag, dtype=bool)
+        self.true_containing = np.array(self.true_containing, dtype=bool)
         self.true_track_length = np.array(self.true_track_length)
         self.reco_initial_energy = np.array(self.reco_initial_energy)
         self.reco_end_energy = np.array(self.reco_end_energy)
         self.reco_sigflag = np.array(self.reco_sigflag, dtype=bool)
+        self.reco_containing = np.array(self.reco_containing, dtype=bool)
         self.reco_track_length = np.array(self.reco_track_length)
         self.mask_TrueSignal = np.array(self.mask_TrueSignal, dtype=bool)
         self.mask_SelectedPart = np.array(self.mask_SelectedPart, dtype=bool)
@@ -224,10 +246,12 @@ class Processor:
         outVars["true_initial_energy"] = self.true_initial_energy
         outVars["true_end_energy"] = self.true_end_energy
         outVars["true_sigflag"] = self.true_sigflag
+        outVars["true_containing"] = self.true_containing
         outVars["true_track_length"] = self.true_track_length
         outVars["reco_initial_energy"] = self.reco_initial_energy
         outVars["reco_end_energy"] = self.reco_end_energy
         outVars["reco_sigflag"] = self.reco_sigflag
+        outVars["reco_containing"] = self.reco_containing
         outVars["reco_track_length"] = self.reco_track_length
         outVars["true_beam_PDG"] = self.true_beam_PDG
         outVars["mask_TrueSignal"] = self.mask_TrueSignal

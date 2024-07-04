@@ -2,7 +2,7 @@ from packages import *
 import get_hists
 from BetheBloch import BetheBloch
 
-def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, KEbins):
+def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, f_containing, KEbins):
     f_SIDini = []
     f_SIDend = []
     f_SIDint_ex = []
@@ -12,13 +12,14 @@ def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, KEbins):
         KE_ini = f_KEi[ievt]
         KE_end = f_KEf[ievt]
         intrcn = f_int_type[ievt]
+        containing = f_containing[ievt]
         
-        ## derive the initial slice ID
+        ## initial slice ID
         for SID_ini in range(Nbins-1):
             if KEbins[SID_ini] < KE_ini:
                 break
                 
-        ## derive the final slice ID
+        ## end slice ID
         for SID_end in range(Nbins-1):
             if KEbins[SID_end+1] < KE_end:
                 break
@@ -28,9 +29,15 @@ def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, KEbins):
             SID_ini = -1
             SID_end = -1
             
-        ## derive the signal interaction slice ID
+        ## interaction slice ID
         SID_int_ex = SID_end
+        
+        ## non-signal interaction
         if intrcn != 1:
+            SID_int_ex = -1
+
+        ## non-containing tracks
+        if not containing:
             SID_int_ex = -1
             
         f_SIDini.append(SID_ini)
@@ -167,6 +174,7 @@ if __name__ == "__main__":
     true_initial_energy = processedVars["true_initial_energy"]
     true_end_energy = processedVars["true_end_energy"]
     true_sigflag = processedVars["true_sigflag"]
+    true_containing = processedVars["true_containing"]
     #particle_type = processedVars["particle_type"]
     particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
     reweight = processedVars["reweight"]
@@ -174,14 +182,16 @@ if __name__ == "__main__":
     divided_trueEini, divided_weights = get_hists.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
     divided_trueEend, divided_weights = get_hists.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
     divided_trueflag, divided_weights = get_hists.divide_vars_by_partype(true_sigflag, particle_type, mask=mask_TrueSignal, weight=reweight)
+    divided_trueisct, divided_weights = get_hists.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
     true_Eini = divided_trueEini[0]
     true_Eend = divided_trueEend[0]
     true_flag = divided_trueflag[0]
+    true_isCt = divided_trueisct[0]
     true_weight = divided_weights[0]
-    print(len(true_Eini), true_Eini, true_Eend, true_flag, true_weight, sep='\n')
+    print(len(true_Eini), true_Eini, true_Eend, true_flag, true_isCt, true_weight, sep='\n')
 
     Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
-    true_SIDini, true_SIDend, true_SIDint_ex = get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_bins)
+    true_SIDini, true_SIDend, true_SIDint_ex = get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_isCt, true_bins)
     true_Nini, true_Nend, true_Nint_ex, true_Ninc = derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
     true_SID3D, true_N3D, true_N3D_Vcov = get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
     true_3SID_Vcov = get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
