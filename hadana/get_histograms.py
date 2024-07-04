@@ -1,4 +1,4 @@
-from packages import *
+from .packages import *
 
 def divide_vars_by_partype(vars, particle_type, mask=None, weight=None):
     ntypes = max(particle_type)+1

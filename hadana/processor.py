@@ -1,6 +1,6 @@
-from packages import *
-from BetheBloch import BetheBloch
-import parameters
+from .packages import *
+from .BetheBloch import BetheBloch
+from . import parameters
 
 class Processor:
     def __init__(self, ntuple, particle, isMC):

@@ -1,4 +1,4 @@
-from packages import *
+import numpy as np
 
 def GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro):
     npt = 0

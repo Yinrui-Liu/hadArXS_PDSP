@@ -1,13 +1,17 @@
-from packages import *
-from processor import Processor
-import selection
-import MCreweight
+from hadana.packages import *
+from hadana.processor import Processor
+import hadana.selection as selection
+import hadana.MC_reweight as reweight
+
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
 beamPDG = 2212
+outfilename = "processed_files/procVars.pkl"
+Nevents = None # change Nevents for smaller sample size
 
-PDSP_ntuple = uproot.open(f"/Users/lyret/{PDSP_ntuple_name}.root")
+
+PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")
 if "MC" in PDSP_ntuple_name:
     isMC = True
 else:
@@ -65,20 +69,20 @@ elif beamPDG == 2212:
 
 eventset = Processor(pduneana, particle, isMC)
 eventset.LoadVariables(variables_to_load)
-eventset.ProcessEvent(Nevents=None)
+eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()
 
-reweight = MCreweight.cal_bkg_reweight(eventset) * MCreweight.cal_momentum_reweight(eventset)
+reweight = reweight.cal_bkg_reweight(eventset) * reweight.cal_momentum_reweight(eventset)
 processedVars["reweight"] = reweight
 
-with open('processedVars.pkl', 'wb') as procfile:
+with open(outfilename, 'wb') as procfile:
     pickle.dump(processedVars, procfile)
 
 
 '''
-print(MCreweight.cal_momentum_reweight(eventset))
-print(MCreweight.cal_bkg_reweight(eventset))
-print(MCreweight.cal_g4rw(eventset, 0.9))
+print(reweight.cal_momentum_reweight(eventset))
+print(reweight.cal_bkg_reweight(eventset))
+print(reweight.cal_g4rw(eventset, 0.9))
 
 combined_mask = mask_SelectedPart & mask_FullSelection
 print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==1)]))
@@ -86,12 +90,12 @@ print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==
 plt.hist(eventset.true_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
 plt.hist(eventset.true_end_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEf")
 plt.legend()
-plt.savefig("test_t.png")
+plt.savefig("plots/test_t.png")
 plt.clf()
 
 plt.hist(eventset.reco_initial_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEi")
 plt.hist(eventset.reco_end_energy[combined_mask], bins=np.arange(0,1000,30), alpha=0.3, label="KEf")
 plt.legend()
-plt.savefig("test_r.png")
+plt.savefig("plots/test_r.png")
 plt.clf()
 '''

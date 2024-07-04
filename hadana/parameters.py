@@ -1,4 +1,4 @@
-from packages import *
+from .packages import *
 
 ### energy slicing/binning
 true_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])

@@ -1,6 +1,6 @@
-from packages import *
-import parameters
-import utils
+from .packages import *
+import ROOT
+from . import parameters
 
 class Particle:
     def __init__(self, pdg, mass):

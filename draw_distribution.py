@@ -1,5 +1,5 @@
-from packages import *
-import get_hists
+from hadana.packages import *
+import hadana.get_histograms as get_hists
 
 
 use_real_data = True
@@ -52,7 +52,7 @@ elif beampdg == 2212:
     pardict = partypedict_proton
 
 if use_real_data:
-    with open(f'processedVars_{infile}data.pkl', 'rb') as datafile:
+    with open(f'processed_files/procVars_{infile}data.pkl', 'rb') as datafile:
         processedVars_data = pickle.load(datafile)
     reco_initial_energy_data = processedVars_data["reco_initial_energy"]
     reco_end_energy_data = processedVars_data["reco_end_energy"]
@@ -65,7 +65,7 @@ if use_real_data:
     reco_sigflag_data = processedVars_data["reco_sigflag"]
     reco_containing_data = processedVars_data["reco_containing"]
 
-with open(f'processedVars_{infile}MC.pkl', 'rb') as mcfile:
+with open(f'processed_files/procVars_{infile}MC.pkl', 'rb') as mcfile:
     processedVars_mc = pickle.load(mcfile)
 reco_initial_energy_mc = processedVars_mc["reco_initial_energy"]
 reco_end_energy_mc = processedVars_mc["reco_end_energy"]
@@ -98,4 +98,5 @@ plt.xlim([binedges[0], binedges[-1]])
 plt.xlabel(xlabel)
 plt.ylabel("Weighted counts")
 plt.legend()
+#plt.savefig("plots/test_plot.pdf")
 plt.show()

@@ -1,4 +1,4 @@
-from packages import *
+from .packages import *
 from scipy.interpolate import CubicSpline
 
 class BetheBloch:

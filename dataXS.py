@@ -1,15 +1,17 @@
-from packages import *
-import get_hists
-import calcXS
-import multiD_unfolding
-from BetheBloch import BetheBloch
-import parameters
+from hadana.packages import *
+import ROOT
+import hadana.get_histograms as get_hists
+import hadana.slicing_method as slicing
+import hadana.multiD_mapping as multiD
+from hadana.BetheBloch import BetheBloch
+import hadana.parameters as parameters
 
 
-beamPDG = 2212
-datafilename = "processedVars_pdata.pkl"
-MCfilename = "processedVars_pMC.pkl"
-resfilename = "response.pkl"
+beamPDG = 211
+datafilename = "processed_files/procVars_pidata.pkl"
+MCfilename = "processed_files/procVars_piMC.pkl"
+resfilename = "processed_files/response_pi.pkl"
+
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -48,8 +50,8 @@ data_reco_weight = divided_weights[0]
 Ndata = len(data_reco_Eini)
 Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
 Nmeasbins = len(meas_bins)
-data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex = calcXS.get_sliceID_histograms(data_reco_Eini, data_reco_Eend, data_reco_flag, data_reco_isCt, meas_bins)
-data_meas_SID3D, data_meas_N3D, data_meas_N3D_Vcov = calcXS.get_3D_histogram(data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex, Nmeasbins, data_reco_weight)
+data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex = slicing.get_sliceID_histograms(data_reco_Eini, data_reco_Eend, data_reco_flag, data_reco_isCt, meas_bins)
+data_meas_SID3D, data_meas_N3D, data_meas_N3D_Vcov = slicing.get_3D_histogram(data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex, Nmeasbins, data_reco_weight)
 data_meas_N3D_err = np.sqrt(np.diag(data_meas_N3D_Vcov))
 
 
@@ -80,8 +82,8 @@ for ibkg in range(3, len(divided_recoEini_mc)):
     bkg_reco_flag = divided_recoflag_mc[ibkg]
     bkg_reco_isCt = divided_recoisct_mc[ibkg]
     bkg_reco_weight = divided_weights_mc[ibkg]
-    bkg_meas_SIDini, bkg_meas_SIDend, bkg_meas_SIDint_ex = calcXS.get_sliceID_histograms(bkg_reco_Eini, bkg_reco_Eend, bkg_reco_flag, bkg_reco_isCt, meas_bins)
-    bkg_meas_SID3D, bkg_meas_N3D, bkg_meas_N3D_Vcov = calcXS.get_3D_histogram(bkg_meas_SIDini, bkg_meas_SIDend, bkg_meas_SIDint_ex, Nmeasbins, bkg_reco_weight)
+    bkg_meas_SIDini, bkg_meas_SIDend, bkg_meas_SIDint_ex = slicing.get_sliceID_histograms(bkg_reco_Eini, bkg_reco_Eend, bkg_reco_flag, bkg_reco_isCt, meas_bins)
+    bkg_meas_SID3D, bkg_meas_N3D, bkg_meas_N3D_Vcov = slicing.get_3D_histogram(bkg_meas_SIDini, bkg_meas_SIDend, bkg_meas_SIDint_ex, Nmeasbins, bkg_reco_weight)
     bkg_meas_N3D_list.append(bkg_meas_N3D)
     bkg_meas_N3D_err_list.append(np.sqrt(np.diag(bkg_meas_N3D_Vcov)))
 
@@ -105,29 +107,29 @@ true_N3D = responseVars["true_N3D"]
 true_N3D_Vcov = responseVars["true_N3D_Vcov"]
 meas_N3D = responseVars["meas_N3D"]
 
-sig_meas_N1D, sig_meas_N1D_err = multiD_unfolding.map_data_to_MC_bins(sig_meas_N3D, sig_meas_N3D_err, meas_3D1D_map)
+sig_meas_N1D, sig_meas_N1D_err = multiD.map_data_to_MC_bins(sig_meas_N3D, sig_meas_N3D_err, meas_3D1D_map)
 sig_meas_V1D = np.diag(sig_meas_N1D_err*sig_meas_N1D_err)
 #print(sig_meas_N1D, sig_meas_N1D_err, sep='\n')
 
 sig_MC_scale = sum(sig_meas_N1D)/sum(meas_N3D)
-sig_unfold, sig_unfold_cov = multiD_unfolding.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=23)
-unfd_N3D, unfd_N3D_Vcov = multiD_unfolding.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, true_N3D, true_N3D_Vcov, sig_MC_scale)
-unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD_unfolding.get_unfold_histograms(unfd_N3D, Ntruebins)
+sig_unfold, sig_unfold_cov = multiD.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=23)
+unfd_N3D, unfd_N3D_Vcov = multiD.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, true_N3D, true_N3D_Vcov, sig_MC_scale)
+unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unfd_N3D, Ntruebins)
 #print(unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc, sep='\n')
 
 
 ### calculate cross section
-unfd_3SID_Vcov = calcXS.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
-unfd_3N_Vcov = calcXS.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
-unfd_XS, unfd_XS_Vcov = calcXS.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
+unfd_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
+unfd_3N_Vcov = slicing.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
+unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
 
 
 ### plot
 if beamPDG == 211:
-    simcurvefile_name = "/Users/lyret/exclusive_xsec.root"
+    simcurvefile_name = "input_files/exclusive_xsec.root"
     simcurve_name = "total_inel_KE"
 elif beamPDG == 2212:
-    simcurvefile_name = "/Users/lyret/proton_cross_section.root"
+    simcurvefile_name = "input_files/proton_cross_section.root"
     simcurve_name = "inel_KE"
 simcurvefile = uproot.open(simcurvefile_name)
 simcurvegraph = simcurvefile[simcurve_name]

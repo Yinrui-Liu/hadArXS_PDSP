@@ -1,4 +1,4 @@
-from packages import *
+from .packages import *
 
 def cal_bkg_reweight(eventset):
     true_beam_PDG = eventset.true_beam_PDG
