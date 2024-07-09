@@ -39,18 +39,20 @@ def get_vars_hists(var_list, weight_list, binedges=None, stack_hist_idx=[], xlab
         plt.clf()
     return hists, hists_err, binedges
 
-def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, mc2data_scale=1, bkg_scale=None, bkg_scale_err=None): # expect bkg_scale as an array with the same length as bkg_hists (nbkgs)
+def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, mc2data_scale=1, bkg_scale=None, bkg_scale_err=None, include_bkg_err=True): # expect bkg_scale as an array with the same length as bkg_hists (nbkgs)
     sig_hist = np.array(data_hist)
     sig_hist_err_sq = np.power(data_hist_err, 2)
     nbins = len(data_hist)
     nbkgs = len(bkg_hists)
-    if bkg_scale is None and bkg_scale_err is None:
+    if bkg_scale is None:
         bkg_scale = np.ones(nbkgs)
+    if (not include_bkg_err) or (bkg_scale_err is None):
         bkg_scale_err = np.zeros(nbkgs)
-    for ih in range(nbins):
+    for ib in range(nbkgs):
+        sig_hist -= (bkg_hists[ib]*mc2data_scale * bkg_scale[ib])
+    if include_bkg_err:
         for ib in range(nbkgs):
-            sig_hist[ih] -= (bkg_hists[ib][ih]*mc2data_scale * bkg_scale[ib])
-            sig_hist_err_sq[ih] += (np.power(bkg_hists_err[ib][ih]*mc2data_scale * bkg_scale[ib], 2) + np.power(bkg_hists[ib][ih]*mc2data_scale * bkg_scale_err[ib], 2))
+            sig_hist_err_sq += (np.power(bkg_hists_err[ib]*mc2data_scale * bkg_scale[ib], 2) + np.power(bkg_hists[ib]*mc2data_scale * bkg_scale_err[ib], 2))
     sig_hist_err = np.sqrt(sig_hist_err_sq)
     return sig_hist, sig_hist_err
 

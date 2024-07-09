@@ -8,10 +8,11 @@ import hadana.parameters as parameters
 
 
 beamPDG = 211
-datafilename = "processed_files/procVars_pidata.pkl"
+datafilename = "processed_files/procVars_piMC.pkl"
 MCfilename = "processed_files/procVars_piMC.pkl"
 resfilename = "processed_files/response_pi.pkl"
-
+# types of systematic uncertainties to include
+inc_sys_bkg = True
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -89,7 +90,8 @@ for ibkg in range(3, len(divided_recoEini_mc)):
 
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.97, 1, 1.71, 1.20, 0.97, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.15, 0.12, 0.12, 0, 0]
-sig_meas_N3D, sig_meas_N3D_err = get_hists.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err)
+print(f"Bkg scale \t{bkg_scale}\nError \t\t{bkg_scale_err}")
+sig_meas_N3D, sig_meas_N3D_err = get_hists.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
 
 
 ### unfolding
@@ -122,6 +124,7 @@ unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unf
 unfd_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
 unfd_3N_Vcov = slicing.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
 unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
+print(f"Measured cross section \t{unfd_XS}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))}")
 
 
 ### plot
