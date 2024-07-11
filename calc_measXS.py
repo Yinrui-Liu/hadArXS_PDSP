@@ -14,7 +14,6 @@ MCfilename = "processed_files/procVars_piMC.pkl"
 resfilename = "processed_files/response_pi.pkl"
 # types of systematic uncertainties to include
 inc_sys_bkg = True
-inc_sys_MCXS = False
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -72,9 +71,7 @@ reco_sigflag_mc = processedVars_mc["reco_sigflag"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
-if inc_sys_MCXS:
-    rdm_MCXS = np.random.normal(1, 0.15) # assign 15% uncertainty for MC XS model
-    weight_mc *= reweight.cal_g4rw(processedVars_mc, rdm_MCXS)
+
 divided_recoEini_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_initial_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 divided_recoEend_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 divided_recoflag_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_sigflag_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)

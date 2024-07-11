@@ -15,6 +15,7 @@ MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
 inc_sys_bkg = True
 inc_sys_MCXS = False
+inc_sys_reweiP = False
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -72,6 +73,10 @@ reco_sigflag_mc = processedVars_mc["reco_sigflag"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
+if inc_sys_reweiP:
+    rdm_reweiP_radius = np.random.normal(0, 1)
+    rdm_reweiP_angle = np.random.uniform(0, 2*np.pi)
+    weight_mc = reweight.cal_bkg_reweight(processedVars_mc) * reweight.cal_momentum_reweight(processedVars_mc, rdm_reweiP_radius, rdm_reweiP_angle)
 if inc_sys_MCXS:
     rdm_MCXS = np.random.normal(1, 0.15) # assign 15% uncertainty for MC XS model
     weight_mc *= reweight.cal_g4rw(processedVars_mc, rdm_MCXS)
@@ -168,7 +173,7 @@ unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, u
 print(f"Measured cross section \t{unfd_XS}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))}")
 
 
-### plot
+'''### plot
 if beamPDG == 211:
     simcurvefile_name = "input_files/exclusive_xsec.root"
     simcurve_name = "total_inel_KE"
@@ -201,4 +206,4 @@ plt.yticks(true_bins[1:-1])
 plt.xlabel(r"Kinetic energy (MeV)")
 plt.ylabel(r"Kinetic energy (MeV)")
 plt.colorbar()
-plt.show()
+plt.show()'''
