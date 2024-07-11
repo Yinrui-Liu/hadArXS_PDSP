@@ -6,8 +6,8 @@ import hadana.multiD_mapping as multiD
 import hadana.parameters as parameters
 
 
-beamPDG = 2212
-procfilename = "processed_files/procVars_pMC.pkl"
+beamPDG = 211
+procfilename = "processed_files/procVars_piMC.pkl"
 respfilename = "processed_files/response.pkl"
 
 

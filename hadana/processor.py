@@ -243,6 +243,8 @@ class Processor:
 
     def GetOutVarsDict(self):
         outVars = {}
+        outVars["isMC"] = self.isMC
+        outVars["beamPDG"] = self.particle.pdg
         outVars["true_initial_energy"] = self.true_initial_energy
         outVars["true_end_energy"] = self.true_end_energy
         outVars["true_sigflag"] = self.true_sigflag

@@ -6,8 +6,8 @@ import hadana.MC_reweight as reweight
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
-beamPDG = 2212
-outfilename = "processed_files/procVars.pkl"
+beamPDG = 211
+outfilename = "processed_files/procVars_piMC.pkl"
 Nevents = None # change Nevents for smaller sample size
 
 
@@ -72,7 +72,7 @@ eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()
 
-reweight = reweight.cal_bkg_reweight(eventset) * reweight.cal_momentum_reweight(eventset)
+reweight = reweight.cal_bkg_reweight(processedVars) * reweight.cal_momentum_reweight(processedVars)
 processedVars["reweight"] = reweight
 
 with open(outfilename, 'wb') as procfile:
@@ -80,9 +80,9 @@ with open(outfilename, 'wb') as procfile:
 
 
 '''
-print(reweight.cal_momentum_reweight(eventset))
-print(reweight.cal_bkg_reweight(eventset))
-print(reweight.cal_g4rw(eventset, 0.9))
+print(reweight.cal_momentum_reweight(processedVars))
+print(reweight.cal_bkg_reweight(processedVars))
+print(reweight.cal_g4rw(processedVars, 0.9))
 
 combined_mask = mask_SelectedPart & mask_FullSelection
 print(len(eventset.true_initial_energy[combined_mask & (eventset.particle_type==1)]))
