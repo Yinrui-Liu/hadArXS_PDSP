@@ -16,6 +16,7 @@ MCfilename = "processed_files/procVars_piMC.pkl"
 inc_sys_bkg = True
 inc_sys_MCXS = False
 inc_sys_reweiP = False
+inc_sys_Eloss = False
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -73,6 +74,13 @@ reco_sigflag_mc = processedVars_mc["reco_sigflag"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
+if inc_sys_Eloss:
+    if beamPDG == 211:
+        rdm_Eloss_shift = np.random.normal(0, 4) # 4 MeV constant error for pion upstream E loss
+    elif beamPDG == 2212:
+        rdm_Eloss_shift = np.random.normal(0, 2) # 2 MeV constant error for proton upstream E loss
+    reco_initial_energy_mc = np.where(reco_initial_energy_mc>0, reco_initial_energy_mc - rdm_Eloss_shift, reco_initial_energy_mc)
+    reco_end_energy_mc = np.where(reco_end_energy_mc>0, reco_end_energy_mc - rdm_Eloss_shift, reco_end_energy_mc)
 if inc_sys_reweiP:
     rdm_reweiP_radius = np.random.normal(0, 1)
     rdm_reweiP_angle = np.random.uniform(0, 2*np.pi)

@@ -62,9 +62,9 @@ class Processor:
             upstream_energy_loss = GetUpstreamEnergyLoss(beam_inst_KE, self.particle.pdg)
             if self.isMC:
                 if self.particle.pdg == 211:
-                    beam_inst_KE += np.random.normal(-9.19, 21.61, Nbatch) # pionp Gaus(-9.19, 21.61), proton Gaus(3.45, 0)
+                    beam_inst_KE += np.random.normal(-9.19, 21.61, Nbatch) # pionp Gaus(-9.19, 21.61)
                 elif self.particle.pdg == 2212:
-                    beam_inst_KE += np.random.normal(3.45, 0, Nbatch)
+                    beam_inst_KE += np.random.normal(3.45, 0, Nbatch) # proton Gaus(3.45, 0)
             reco_frontfaceKE = beam_inst_KE - upstream_energy_loss
             reco_trklen_batch = np.zeros(Nbatch)
 
