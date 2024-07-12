@@ -11,9 +11,9 @@ import hadana.MC_reweight as reweight
 beamPDG = 211
 datafilename = "processed_files/procVars_piMC.pkl"
 MCfilename = "processed_files/procVars_piMC.pkl"
-#resfilename = "processed_files/response_pi.pkl"
 # types of systematic uncertainties to include
 inc_sys_bkg = True
+inc_sys_MCstat = False
 inc_sys_MCXS = False
 inc_sys_reweiP = False
 inc_sys_Eloss = False
@@ -159,8 +159,28 @@ meas_3D1D_map, mc_meas_N1D, mc_meas_N1D_err, Nmeasbins_1D = multiD.map_index_to_
 #print(true_3D1D_map, mc_true_N1D, mc_true_N1D_err, Ntruebins_1D, sep='\n')
 #print(meas_3D1D_map, mc_meas_N1D, mc_meas_N1D_err, Nmeasbins_1D, sep='\n')
 
-eff1D, mc_true_SID3D_sel = multiD.get_efficiency(mc_true_N3D, mc_true_N1D, mc_true_SID3D, Ntruebins_3D, pass_selection_mc, mc_reco_weight)
-response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], mc_reco_weight)
+if inc_sys_MCstat:
+    _, mc_true_N3D_nominal, mc_true_N3D_Vcov_nominal = slicing.get_3D_histogram(mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex, Ntruebins, np.ones_like(mc_true_weight))
+    _, mc_true_N1D_nominal, _, _ = multiD.map_index_to_combined_variable(mc_true_N3D_nominal, np.sqrt(np.diag(mc_true_N3D_Vcov_nominal)), Ntruebins)
+
+    # To prepare the fluctuated eff1D and response_matrix. They should not be fluctuated separately, because response_matrix includes events passing selection, contributing to the numorator of eff1D. Thus, after fluctuating response_matrix as the histogram of *selected events* (numorator), we fluctuate the histogram of *missed events* (denominator - numorator), and then sum the two to get the histogram of *all events* (denominator).
+    mc_true_SID3D_sel = mc_true_SID3D[pass_selection_mc]
+    response_matrix_nominal, _ = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], np.ones_like(mc_reco_weight))
+    response_matrix_fluc = np.random.poisson(response_matrix_nominal)
+    miss_nominal = mc_true_N1D_nominal - np.sum(response_matrix_nominal, axis=1)
+    miss_fluc = np.random.poisson(miss_nominal)
+    mc_true_N1D_fluc = np.sum(response_matrix_fluc, axis=1) + miss_fluc
+
+    eff1D, mc_true_SID3D_sel = multiD.get_efficiency(mc_true_N3D, mc_true_N1D * utils.safe_divide(mc_true_N1D_fluc, mc_true_N1D_nominal) * utils.safe_divide(np.sum(response_matrix_nominal, axis=1), np.sum(response_matrix_fluc, axis=1)), mc_true_SID3D, Ntruebins_3D, pass_selection_mc, mc_reco_weight)
+    mc_reco_weight_fluc = np.ones_like(mc_reco_weight)
+    for ievt in range(len(mc_reco_weight)):
+        mc_reco_weight_fluc[ievt] = mc_reco_weight[ievt] * utils.safe_divide(response_matrix_fluc[true_3D1D_map[mc_true_SID3D_sel[ievt]]-1,meas_3D1D_map[mc_meas_SID3D[ievt]]-1], response_matrix_nominal[true_3D1D_map[mc_true_SID3D_sel[ievt]]-1,meas_3D1D_map[mc_meas_SID3D[ievt]]-1])
+    response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], mc_reco_weight_fluc)
+    print(eff1D, response_matrix,sep='\n')
+else:
+    eff1D, mc_true_SID3D_sel = multiD.get_efficiency(mc_true_N3D, mc_true_N1D, mc_true_SID3D, Ntruebins_3D, pass_selection_mc, mc_reco_weight)
+    response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], mc_reco_weight)
+    print(eff1D, response_matrix,sep='\n')
 
 print("### unfolding")
 sig_meas_N1D, sig_meas_N1D_err = multiD.map_data_to_MC_bins(sig_meas_N3D, sig_meas_N3D_err, meas_3D1D_map)
@@ -169,7 +189,10 @@ sig_meas_V1D = np.diag(sig_meas_N1D_err*sig_meas_N1D_err)
 
 sig_MC_scale = sum(sig_meas_N1D)/sum(mc_meas_N3D)
 sig_unfold, sig_unfold_cov = multiD.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=23)
-unfd_N3D, unfd_N3D_Vcov = multiD.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, mc_true_N3D, mc_true_N3D_Vcov, sig_MC_scale)
+if inc_sys_MCstat:
+    unfd_N3D, unfd_N3D_Vcov = multiD.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, mc_true_N3D, mc_true_N3D_Vcov, sig_MC_scale, utils.safe_divide(mc_true_N1D_fluc, mc_true_N1D_nominal))
+else:
+    unfd_N3D, unfd_N3D_Vcov = multiD.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, mc_true_N3D, mc_true_N3D_Vcov, sig_MC_scale)
 unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unfd_N3D, Ntruebins)
 #print(unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc, sep='\n')
 
@@ -181,7 +204,7 @@ unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, u
 print(f"Measured cross section \t{unfd_XS}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))}")
 
 
-'''### plot
+### plot
 if beamPDG == 211:
     simcurvefile_name = "input_files/exclusive_xsec.root"
     simcurve_name = "total_inel_KE"
@@ -214,4 +237,4 @@ plt.yticks(true_bins[1:-1])
 plt.xlabel(r"Kinetic energy (MeV)")
 plt.ylabel(r"Kinetic energy (MeV)")
 plt.colorbar()
-plt.show()'''
+plt.show()

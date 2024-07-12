@@ -50,3 +50,12 @@ def transform_cov_to_corr_matrix(cov): # a useful function to get correlation ma
             if cov[ir, ic] != 0:
                 corr[ir, ic] = cov[ir, ic]/np.sqrt(cov[ir, ir]*cov[ic, ic])
     return corr
+
+def safe_divide(numerator, denominator):
+    mask = (numerator == 0) & (denominator == 0)
+    numerator = numerator.astype(np.float64)
+    denominator = denominator.astype(np.float64)
+    result = np.empty_like(denominator)
+    result[~mask] = numerator[~mask] / denominator[~mask]
+    result[mask] = 1
+    return result

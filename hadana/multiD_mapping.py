@@ -23,7 +23,7 @@ def get_efficiency(f_true_N3D, f_true_N1D, f_true_SID3D, Nbins_3D, pass_selectio
     f_true_SID3D_sel = f_true_SID3D[pass_selection]
     f_true_N3D_sel, _ = np.histogram(f_true_SID3D_sel, bins=np.arange(Nbins_3D+1), weights=weight)
 
-    f_eff1D = f_true_N3D_sel[f_true_N3D>0]/f_true_N1D
+    f_eff1D = utils.safe_divide(f_true_N3D_sel[f_true_N3D>0], f_true_N1D)
     return f_eff1D, f_true_SID3D_sel
 
 def get_response_matrix(f_Nmeasbins, f_Ntruebins, f_meas_hist, f_true_hist, weight):
@@ -71,7 +71,9 @@ def unfolding(f_data_meas_N1D, f_data_meas_V1D, f_response, niter=4, Nmeasbins=N
             f_data_unfold_cov[ibin, jbin] = VUnfold[ibin, jbin]
     return f_data_unfold, f_data_unfold_cov
 
-def efficiency_correct_1Dvar(f_data_unfold, f_data_unfold_cov, f_eff1D, f_true_3D1D_map, f_Ntruebins_3D, f_true_N3D, f_true_N3D_Vcov, f_data_MC_scale):
+def efficiency_correct_1Dvar(f_data_unfold, f_data_unfold_cov, f_eff1D, f_true_3D1D_map, f_Ntruebins_3D, f_true_N3D, f_true_N3D_Vcov, f_data_MC_scale, MCstat_fluc_to_nominal=None):
+    if MCstat_fluc_to_nominal is None:
+        MCstat_fluc_to_nominal = np.ones_like(f_eff1D)
     f_unfd_N3D = np.zeros(f_Ntruebins_3D)
     f_unfd_N3D_Vcov = np.zeros([f_Ntruebins_3D, f_Ntruebins_3D])
     for ibin in range(f_Ntruebins_3D):
@@ -85,8 +87,8 @@ def efficiency_correct_1Dvar(f_data_unfold, f_data_unfold_cov, f_eff1D, f_true_3
                         f_unfd_N3D_Vcov[ibin, jbin] = f_data_unfold_cov[idx_1D_i-1, idx_1D_j-1] / (f_eff1D[idx_1D_i-1]*f_eff1D[idx_1D_j-1])
             elif f_eff1D[idx_1D_i-1] == 0:
                 #print(data_unfold[true_3D1D_map[ibin]-1], true_N1D[true_3D1D_map[ibin]-1])
-                f_unfd_N3D[ibin] = f_true_N3D[ibin]*f_data_MC_scale
-                f_unfd_N3D_Vcov[ibin, ibin] = f_true_N3D_Vcov[ibin, ibin]*f_data_MC_scale*f_data_MC_scale
+                f_unfd_N3D[ibin] = f_true_N3D[ibin] * f_data_MC_scale * MCstat_fluc_to_nominal[idx_1D_i-1]
+                f_unfd_N3D_Vcov[ibin, ibin] = f_true_N3D_Vcov[ibin, ibin] * f_data_MC_scale*f_data_MC_scale * MCstat_fluc_to_nominal[idx_1D_i-1]*MCstat_fluc_to_nominal[idx_1D_i-1]
     #f_unfd_N3D_err = np.sqrt(np.diag(f_unfd_N3D_Vcov))
     return f_unfd_N3D, f_unfd_N3D_Vcov
 
