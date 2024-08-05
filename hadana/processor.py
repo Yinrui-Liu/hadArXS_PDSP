@@ -3,7 +3,7 @@ from .BetheBloch import BetheBloch
 from . import parameters
 
 class Processor:
-    def __init__(self, ntuple, particle, isMC):
+    def __init__(self, ntuple, particle, isMC, selection=None):
         self.ntuple = ntuple # ttree read from uproot
         self.variables_to_load = [] # list of strings
         self.particle = particle # Particle
@@ -13,6 +13,10 @@ class Processor:
             self.fidvol_low = parameters.fidvol_low
         else:
             self.fidvol_low = parameters.fidvol_low + self.particle.parBQ["beam_startZ_data"] - self.particle.parBQ["beam_startZ_mc"]
+        if selection is None:
+            self.selection = [True]*10
+        else:
+            self.selection = selection
 
         # output variables
         self.true_initial_energy = []
@@ -208,7 +212,7 @@ class Processor:
             else:
                 mask_TrueSignal = np.zeros_like(true_beam_PDG, dtype=bool)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
-            mask_FullSelection = self.particle.PassSelection(evt, reco_trklen=reco_trklen_batch)
+            mask_FullSelection = self.particle.PassSelection(evt, self.isMC, self.selection, reco_trklen=reco_trklen_batch)
 
             Nevt_tot += Nbatch
             Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])

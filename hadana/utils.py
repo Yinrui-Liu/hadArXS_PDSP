@@ -1,4 +1,5 @@
 import numpy as np
+import iminuit
 
 def GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro):
     npt = 0
@@ -59,3 +60,29 @@ def safe_divide(numerator, denominator):
     result[~mask] = numerator[~mask] / denominator[~mask]
     result[mask] = 1
     return result
+
+def gaussian(x, mu, sigma):
+        return np.exp(-(x - mu)**2 / (2 * sigma**2)) / np.sqrt(2*np.pi) / sigma
+def fit_gaus_hist(data, x_range, initial_guesses):
+    mask = (data >= x_range[0]) & (data <= x_range[1])
+    data = data[mask]
+    
+    # Define the negative log-likelihood function
+    def negative_log_likelihood(mu, sigma):
+        # Ensure sigma is positive to avoid taking log of zero or negative values
+        if sigma <= 0:
+            return np.inf
+        
+        # Compute the Gaussian probability density function values
+        pdf_values = gaussian(data, mu, sigma)
+        
+        # Negative log-likelihood
+        nll = -np.sum(np.log(pdf_values))
+        return nll
+
+    # Initialize Minuit
+    m = iminuit.Minuit(negative_log_likelihood, mu=initial_guesses[0], sigma=initial_guesses[1])
+
+    # Perform the minimization
+    m.migrad()
+    return m
