@@ -71,17 +71,22 @@ eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()
 
-reweight = reweight.cal_bkg_reweight(processedVars) * reweight.cal_momentum_reweight(processedVars)
-processedVars["reweight"] = reweight
+weights = reweight.cal_bkg_reweight(processedVars) * reweight.cal_momentum_reweight(processedVars)
+processedVars["reweight"] = weights
+
+mask_SelectedPart = processedVars["mask_SelectedPart"]
+mask_FullSelection = processedVars["mask_FullSelection"]
+mask = (mask_SelectedPart & mask_FullSelection)[:Nevents]
+weights = weights[:Nevents][mask]
 
 
 ### start x
-x_data = np.array(pduneana["reco_beam_calo_startX"])[:Nevents] # edit here the var name
-m = utils.fit_gaus_hist(x_data, x_range=[-40, -20], initial_guesses=[-30, 5]) # edit here the fit range and initial guess
+x_data = np.array(pduneana["reco_beam_calo_startX"])[:Nevents][mask] # edit here the var name
+m = utils.fit_gaus_hist(x_data, weights, x_range=[-40, -20], initial_guesses=[-30, 5]) # edit here the fit range and initial guess
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [-80, 20] # edit here the plot range
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -90,12 +95,12 @@ plt.xlabel("reco_beam_calo_startX [cm]") # edit here the xlabel
 plt.show()
 
 ### start y
-x_data = np.array(pduneana["reco_beam_calo_startY"])[:Nevents]
-m = utils.fit_gaus_hist(x_data, x_range=[412, 432], initial_guesses=[422, 5])
+x_data = np.array(pduneana["reco_beam_calo_startY"])[:Nevents][mask]
+m = utils.fit_gaus_hist(x_data, weights, x_range=[412, 432], initial_guesses=[422, 5])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [370, 470]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -104,15 +109,15 @@ plt.xlabel("reco_beam_calo_startY [cm]")
 plt.show()
 
 ### start z
-x_data = np.array(pduneana["reco_beam_calo_startZ"])[:Nevents]
+x_data = np.array(pduneana["reco_beam_calo_startZ"])[:Nevents][mask]
 if isMC:
-    m = utils.fit_gaus_hist(x_data, x_range=[-0.4, 0.6], initial_guesses=[0.1, 0.2])
+    m = utils.fit_gaus_hist(x_data, weights, x_range=[-0.4, 0.6], initial_guesses=[0.1, 0.2])
 else:
-    m = utils.fit_gaus_hist(x_data, x_range=[1, 5], initial_guesses=[3, 1])
+    m = utils.fit_gaus_hist(x_data, weights, x_range=[1, 5], initial_guesses=[3, 1])
 print(f"Fitted parameters: mu={m.values['mu']:.3f}±{m.errors['mu']:.3f}, sigma={m.values['sigma']:.3f}±{m.errors['sigma']:.3f}")
 # Plot the data and the fitted function
 xrange_draw = [-3, 9]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -121,12 +126,12 @@ plt.xlabel("reco_beam_calo_startZ [cm]")
 plt.show()
 
 ### inst x
-x_data = np.array(pduneana["beam_inst_X"])[:Nevents]
-m = utils.fit_gaus_hist(x_data, x_range=[-40, -20], initial_guesses=[-30, 5])
+x_data = np.array(pduneana["beam_inst_X"])[:Nevents][mask]
+m = utils.fit_gaus_hist(x_data, weights, x_range=[-40, -20], initial_guesses=[-30, 5])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [-80, 20]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -135,12 +140,12 @@ plt.xlabel("beam_inst_X [cm]")
 plt.show()
 
 ### inst y
-x_data = np.array(pduneana["beam_inst_Y"])[:Nevents]
-m = utils.fit_gaus_hist(x_data, x_range=[412, 432], initial_guesses=[422, 5])
+x_data = np.array(pduneana["beam_inst_Y"])[:Nevents][mask]
+m = utils.fit_gaus_hist(x_data, weights, x_range=[412, 432], initial_guesses=[422, 5])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [370, 470]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -158,19 +163,19 @@ reco_beam_calo_endZ = np.array(pduneana["reco_beam_calo_endZ"])[:Nevents]
 pt0 = np.array([reco_beam_calo_startX, reco_beam_calo_startY, reco_beam_calo_startZ])
 pt1 = np.array([reco_beam_calo_endX, reco_beam_calo_endY, reco_beam_calo_endZ])
 dir = pt1 - pt0
-norms = np.linalg.norm(dir, axis=0)
-dir = np.transpose(dir)[norms!=0]
+norms = np.linalg.norm(dir, axis=0)[mask]
+dir = np.transpose(dir)[mask][norms!=0]
 norms = norms[norms!=0]
 dir = np.transpose(dir)/norms
 
 
 ### angle x
 x_data = np.arccos(dir[0]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, x_range=[97, 105], initial_guesses=[101, 3])
+m = utils.fit_gaus_hist(x_data, weights, x_range=[97, 105], initial_guesses=[101, 3]) # may update to double gaussian fit in the future
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [70, 130]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -180,11 +185,11 @@ plt.show()
 
 ### angle y
 x_data = np.arccos(dir[1]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, x_range=[96, 108], initial_guesses=[102, 4])
+m = utils.fit_gaus_hist(x_data, weights, x_range=[96, 108], initial_guesses=[102, 4])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [70, 130]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -194,11 +199,11 @@ plt.show()
 
 ### angle z
 x_data = np.arccos(dir[2]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, x_range=[12, 22], initial_guesses=[17, 3.5])
+m = utils.fit_gaus_hist(x_data, weights, x_range=[12, 22], initial_guesses=[17, 3.5])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [-5, 40]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, alpha=0.6, color='g', label='Data')
+plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')

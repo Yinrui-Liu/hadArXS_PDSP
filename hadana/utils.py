@@ -63,9 +63,12 @@ def safe_divide(numerator, denominator):
 
 def gaussian(x, mu, sigma):
         return np.exp(-(x - mu)**2 / (2 * sigma**2)) / np.sqrt(2*np.pi) / sigma
-def fit_gaus_hist(data, x_range, initial_guesses):
+def fit_gaus_hist(data, weights, x_range, initial_guesses):
+    #if weights is None:
+    #    weights = np.ones_like(data)
     mask = (data >= x_range[0]) & (data <= x_range[1])
     data = data[mask]
+    weights = weights[mask]
     
     # Define the negative log-likelihood function
     def negative_log_likelihood(mu, sigma):
@@ -77,7 +80,7 @@ def fit_gaus_hist(data, x_range, initial_guesses):
         pdf_values = gaussian(data, mu, sigma)
         
         # Negative log-likelihood
-        nll = -np.sum(np.log(pdf_values))
+        nll = -np.sum(weights * np.log(pdf_values))
         return nll
 
     # Initialize Minuit
