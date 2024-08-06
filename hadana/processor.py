@@ -3,7 +3,7 @@ from .BetheBloch import BetheBloch
 from . import parameters
 
 class Processor:
-    def __init__(self, ntuple, particle, isMC, selection=None):
+    def __init__(self, ntuple, particle, isMC, selection=None, fake_data=None):
         self.ntuple = ntuple # ttree read from uproot
         self.variables_to_load = [] # list of strings
         self.particle = particle # Particle
@@ -17,6 +17,7 @@ class Processor:
             self.selection = [True]*10
         else:
             self.selection = selection
+        self.fake_data = fake_data # for MC, fake_data is True for all fake data, False for all true MC, None for half-half
 
         # output variables
         self.true_initial_energy = []
@@ -83,6 +84,12 @@ class Processor:
             true_beam_startP = evt["true_beam_startP"]
             
             true_endZ = []
+            if self.fake_data is None:
+                isFake = evtno%2
+            elif self.fake_data is True:
+                isFake = [True]*Nbatch
+            elif self.fake_data is False:
+                isFake = [False]*Nbatch
             for ievt in range(Nbatch):
                 if self.isMC:
                     ## calculate true length and true energies
@@ -184,7 +191,7 @@ class Processor:
                 self.reco_track_length.append(reco_trklen)
 
                 # get particle type
-                par_type = GetParticleType(self.particle.pdg, self.isMC, evtno[ievt]%2, reco_beam_true_byE_matched[ievt], reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt], true_beam_PDG[ievt], true_beam_endProcess[ievt])
+                par_type = GetParticleType(self.particle.pdg, self.isMC, isFake[ievt], reco_beam_true_byE_matched[ievt], reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt], true_beam_PDG[ievt], true_beam_endProcess[ievt])
                 self.particle_type.append(par_type)
 
                 inclusive = True
