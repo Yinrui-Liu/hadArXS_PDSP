@@ -3,7 +3,7 @@ from .BetheBloch import BetheBloch
 from . import parameters
 
 class Processor:
-    def __init__(self, ntuple, particle, isMC, selection=None, fake_data=None):
+    def __init__(self, ntuple, particle, isMC, **kwargs):
         self.ntuple = ntuple # ttree read from uproot
         self.variables_to_load = [] # list of strings
         self.particle = particle # Particle
@@ -13,11 +13,10 @@ class Processor:
             self.fidvol_low = parameters.fidvol_low
         else:
             self.fidvol_low = parameters.fidvol_low + self.particle.parBQ["beam_startZ_data"] - self.particle.parBQ["beam_startZ_mc"]
-        if selection is None:
-            self.selection = [True]*10
-        else:
-            self.selection = selection
-        self.fake_data = fake_data # for MC, fake_data is True for all fake data, False for all true MC, None for half-half
+        
+        self.selection = kwargs.get('selection', [True]*10)
+        self.fake_data = kwargs.get('fake_data', None) # for MC, fake_data is True for all fake data, False for all true MC, None for half-half
+        self.incBQcut = kwargs.get('incBQcut', [True]*3) # include beam start XYZ cut, beam angle cut, beam scraper cut
 
         # output variables
         self.true_initial_energy = []
@@ -39,6 +38,7 @@ class Processor:
         self.g4rw_full_grid_proton_coeffs = np.array([])
         self.true_beam_startP = np.array([])
         self.reco_beam_true_byE_matched = np.array([])
+        self.beam_inst_KE = np.array([])
         
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
@@ -215,11 +215,11 @@ class Processor:
 
             # selection
             if self.isMC:
-                mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > parameters.fidvol_low)
+                mask_TrueSignal = (true_beam_PDG==self.particle.pdg) & (np.array(true_endZ) > self.fidvol_low)
             else:
                 mask_TrueSignal = np.zeros_like(true_beam_PDG, dtype=bool)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
-            mask_FullSelection = self.particle.PassSelection(evt, self.isMC, self.selection, reco_trklen=reco_trklen_batch)
+            mask_FullSelection = self.particle.PassSelection(evt, self.isMC, self.selection, reco_trklen=reco_trklen_batch, xyz_cut=self.incBQcut[0], angle_cut=self.incBQcut[1], scraper_cut=self.incBQcut[2])
 
             Nevt_tot += Nbatch
             Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])
@@ -233,6 +233,7 @@ class Processor:
             self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
             self.true_beam_startP = np.concatenate([self.true_beam_startP, true_beam_startP])
             self.reco_beam_true_byE_matched = np.concatenate([self.reco_beam_true_byE_matched, reco_beam_true_byE_matched])
+            self.beam_inst_KE = np.concatenate([self.beam_inst_KE, beam_inst_KE])
             
             print(f"{Nevt_tot} events processed.")
         
@@ -275,6 +276,7 @@ class Processor:
         outVars["g4rw_full_grid_proton_coeffs"] = self.g4rw_full_grid_proton_coeffs
         outVars["true_beam_startP"] = self.true_beam_startP
         outVars["reco_beam_true_byE_matched"] = self.reco_beam_true_byE_matched
+        outVars["beam_inst_KE"] = self.beam_inst_KE
         return outVars
 
 

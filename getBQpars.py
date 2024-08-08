@@ -66,7 +66,7 @@ elif beamPDG == 2212:
     particle = selection.Particle(beamPDG, 938.272)
     particle.SetCandidatePDGlist(2212)
 
-eventset = Processor(pduneana, particle, isMC, selection=[True,True,False,False,False,False]) # selection up to beam quality cuts
+eventset = Processor(pduneana, particle, isMC, selection=[True,True,False,False,False,False], fake_data=False) # selection up to beam quality cuts
 eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()

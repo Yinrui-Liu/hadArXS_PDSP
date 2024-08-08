@@ -50,7 +50,7 @@ class Particle:
             if selection[1] is True:
                 pass_selection *= PassCaloSizeCut(evt)
             if selection[2] is True:
-                pass_selection *= PassBeamQualityCut(evt, self.parBQ, isMC)
+                pass_selection *= PassBeamQualityCut(evt, self.parBQ, isMC, kwargs.get('xyz_cut', True), kwargs.get('angle_cut', True), kwargs.get('scraper_cut', True))
             if selection[3] is True:
                 pass_selection *= PassFidVolCut(evt, self.parBQ, isMC)
             if selection[4] is True:
@@ -63,11 +63,11 @@ class Particle:
             if selection[1] is True:
                 pass_selection *= PassCaloSizeCut(evt)
             if selection[2] is True:
-                pass_selection *= PassBeamQualityCut(evt, self.parBQ, isMC)
+                pass_selection *= PassBeamQualityCut(evt, self.parBQ, isMC, kwargs.get('xyz_cut', True), kwargs.get('angle_cut', True), kwargs.get('scraper_cut', True))
             if selection[3] is True:
                 pass_selection *= PassFidVolCut(evt, self.parBQ, isMC)
             if selection[4] is True:
-                pass_selection *= PassStoppingProtonCut(evt, **kwargs)
+                pass_selection *= PassStoppingProtonCut(evt, kwargs.get('reco_trklen'))
         pass_selection = np.array(pass_selection, dtype=bool)
         return pass_selection
         
@@ -80,7 +80,7 @@ def PassCaloSizeCut(evt): # the collection plane hits not empty
     
     return np.array([len(calo_wire) != 0 for calo_wire in reco_beam_calo_wire])
 
-def PassBeamQualityCut(evt, parBQ, isMC):
+def PassBeamQualityCut(evt, parBQ, isMC, xyz_cut=True, angle_cut=True, scraper_cut=True):
     reco_beam_calo_startX = evt["reco_beam_calo_startX"]
     reco_beam_calo_startY = evt["reco_beam_calo_startY"]
     reco_beam_calo_startZ = evt["reco_beam_calo_startZ"]
@@ -131,7 +131,14 @@ def PassBeamQualityCut(evt, parBQ, isMC):
     else:
         inst_dxy = np.power( (beam_inst_X-parBQ["beam_startX_data_inst"])/parBQ["beam_startX_rms_data_inst"], 2) + np.power( (beam_inst_Y-parBQ["beam_startY_data_inst"])/parBQ["beam_startY_rms_data_inst"], 2)
 
-    return PassBeamQualityCut_xyz(beam_dxy, beam_dz) & PassBeamQualityCut_angle(beam_costh) & PassBeamQualityCut_inst(inst_dxy) & non_empty_mask
+    passBQcut = non_empty_mask
+    if xyz_cut:
+        passBQcut &= PassBeamQualityCut_xyz(beam_dxy, beam_dz)
+    if angle_cut:
+        passBQcut &= PassBeamQualityCut_angle(beam_costh)
+    if scraper_cut:
+        passBQcut &= PassBeamQualityCut_inst(inst_dxy)
+    return passBQcut
 
 def PassBeamQualityCut_xyz(beam_dxy, beam_dz):
     return (beam_dxy > parameters.dxy_min) & (beam_dxy < parameters.dxy_max) & (beam_dz > parameters.dz_min) & (beam_dz < parameters.dz_max)
