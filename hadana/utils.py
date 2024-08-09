@@ -1,5 +1,6 @@
 import numpy as np
 import iminuit
+from .get_histograms import divide_vars_by_partype, get_vars_hists, bkg_subtraction
 
 def GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro):
     npt = 0
@@ -89,3 +90,24 @@ def fit_gaus_hist(data, weights, x_range, initial_guesses):
     # Perform the minimization
     m.migrad()
     return m
+
+def cal_chi2_2hists(arr_1, arr_2, weight_1, weight_2, bins, fit_range=None, scale21=None): # bins and fit_range should be increasing
+    if fit_range is None:
+        fit_range = [bins[0], bins[-1]]
+    for ibin in range(len(bins)):
+        if bins[ibin] >= fit_range[0]:
+            fit_binidx_min = ibin
+            break
+    for ibin in range(len(bins)-1, -1, -1):
+        if bins[ibin] <= fit_range[1]:
+            fit_binidx_max = ibin
+            break
+
+    if scale21 is None:
+        scale21 = sum(weight_1)/sum(weight_2)
+    hist_1, hist_1_err, _ = get_vars_hists([arr_1], [weight_1], bins)
+    hist_2, hist_2_err, _ = get_vars_hists([arr_2], [weight_2*scale21], bins)
+    hist_1_err = np.clip(hist_1_err, 1, None) # avoid Poisson error to be 0
+    chi2 = (hist_1[0] - hist_2[0])*(hist_1[0] - hist_2[0]) / (hist_1_err[0]*hist_1_err[0] + hist_2_err[0]*hist_2_err[0])
+    nfitbins = fit_binidx_max - fit_binidx_min
+    return np.sum(chi2[fit_binidx_min:fit_binidx_max]), nfitbins

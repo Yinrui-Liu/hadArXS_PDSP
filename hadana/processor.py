@@ -39,6 +39,9 @@ class Processor:
         self.true_beam_startP = np.array([])
         self.reco_beam_true_byE_matched = np.array([])
         self.beam_inst_KE = np.array([])
+        self.Michel_score_bkgfit_mu = np.array([])
+        self.proton_chi2_bkgfit_p = np.array([])
+        self.costheta_bkgfit_spi = np.array([])
         
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
@@ -220,6 +223,12 @@ class Processor:
                 mask_TrueSignal = np.zeros_like(true_beam_PDG, dtype=bool)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
             mask_FullSelection = self.particle.PassSelection(evt, self.isMC, self.selection, reco_trklen=reco_trklen_batch, xyz_cut=self.incBQcut[0], angle_cut=self.incBQcut[1], scraper_cut=self.incBQcut[2])
+
+            # bkg fit variables
+            if self.particle.pdg == 211:
+                self.Michel_score_bkgfit_mu = np.concatenate([self.Michel_score_bkgfit_mu, self.particle.var_dict["daughter_michel_score"]])
+                self.proton_chi2_bkgfit_p = np.concatenate([self.proton_chi2_bkgfit_p, self.particle.var_dict["chi2_protons"]])
+                self.costheta_bkgfit_spi = np.concatenate([self.costheta_bkgfit_spi, self.particle.var_dict["beam_costh"]])
 
             Nevt_tot += Nbatch
             Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])

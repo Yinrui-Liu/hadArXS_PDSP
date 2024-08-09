@@ -117,14 +117,6 @@ weights_data = weights_data[:Nevents][mask_data]
 x_data = processedVars_data["reco_track_length"][:Nevents][mask_data]
 
 bins = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 500]
-def cal_chi2_2hists(arr_1, arr_2, weight_1, weight_2, bins, fit_bins=None):
-    if fit_bins is None:
-        fit_bins = [0, len(bins)-1]
-    hist_1, hist_1_err, _ = get_hists.get_vars_hists([arr_1], [weight_1], bins)
-    hist_2, hist_2_err, _ = get_hists.get_vars_hists([arr_2], [weight_2*sum(weight_1)/sum(weight_2)], bins)
-    chi2 = (hist_1[0] - hist_2[0])*(hist_1[0] - hist_2[0]) / (hist_1_err[0]*hist_1_err[0] + hist_2_err[0]*hist_2_err[0])
-    nfitbins = fit_bins[1] - fit_bins[0]
-    return np.sum(chi2[fit_bins[0]:fit_bins[1]]), nfitbins
 
 ### get muon reweight
 wmu_list = np.linspace(0.8, 1.2, 100)
@@ -132,7 +124,7 @@ chi2_list = []
 for wmu in wmu_list:
     weight_mu = np.where(par_type_MC==3, wmu, 1)
     weights_MC_rew = weights_MC*weight_mu
-    chi2, _ = cal_chi2_2hists(x_data, x_MC, weights_data, weights_MC_rew, bins, fit_bins=[15, len(bins)-1]) # [150, 500]
+    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data, weights_MC_rew, bins, fit_bins=[15, len(bins)-1]) # [150, 500]
     chi2_list.append(chi2)
 min_chi2 = min(chi2_list)
 min_chi2_index = chi2_list.index(min_chi2)
