@@ -42,7 +42,7 @@ def map_data_to_MC_bins(f_N3D, f_N3D_err, f_3D1D_map):
     f_N1D_err = f_N3D_err[f_3D1D_map>0]
     return f_N1D, f_N1D_err
 
-def unfolding(f_data_meas_N1D, f_data_meas_V1D, f_response, niter=4, Nmeasbins=None, Ntruebins=None):
+def unfolding(f_data_meas_N1D, f_data_meas_V1D, f_response, niter=4, Nmeasbins=None, Ntruebins=None, verbose=True):
     if Nmeasbins is None:
         Nmeasbins = f_response.Hresponse().GetNbinsX()
     if Ntruebins is None:
@@ -51,6 +51,8 @@ def unfolding(f_data_meas_N1D, f_data_meas_V1D, f_response, niter=4, Nmeasbins=N
     for ibin in range(Nmeasbins):
         hMeas.SetBinContent(ibin+1, f_data_meas_N1D[ibin])
     uf = ROOT.RooUnfoldBayes(f_response, hMeas, niter=niter)
+    if not verbose:
+        uf.SetVerbose(0)
     data_meas_V1D_TM = ROOT.TMatrix(Nmeasbins, Nmeasbins)
     for ibin in range(Nmeasbins):
         for jbin in range(Nmeasbins):
