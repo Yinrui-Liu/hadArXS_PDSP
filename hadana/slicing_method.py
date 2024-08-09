@@ -1,6 +1,4 @@
 from .packages import *
-from . import get_histograms as get_hists
-from .BetheBloch import BetheBloch
 
 def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, f_containing, KEbins):
     f_SIDini = []

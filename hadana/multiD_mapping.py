@@ -1,8 +1,5 @@
 from .packages import *
 import ROOT
-from . import slicing_method as slicing
-from . import get_histograms as get_hists
-from . import parameters
 
 def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
     Nbins_3D = Nbins**3

@@ -1,6 +1,5 @@
 from hadana.packages import *
 import ROOT
-import hadana.get_histograms as get_hists
 import hadana.slicing_method as slicing
 import hadana.multiD_mapping as multiD
 from hadana.BetheBloch import BetheBloch
@@ -8,9 +7,9 @@ import hadana.parameters as parameters
 import hadana.MC_reweight as reweight
 
 
-beamPDG = 211
-datafilename = "processed_files/procVars_piMC.pkl"
-MCfilename = "processed_files/procVars_piMC.pkl"
+beamPDG = 2212
+datafilename = "processed_files/procVars_pdata.pkl"
+MCfilename = "processed_files/procVars_pMC.pkl"
 # types of systematic uncertainties to include
 inc_sys_bkg = True
 inc_sys_MCstat = False
@@ -42,10 +41,10 @@ weight_dt = processedVars["reweight"]
 
 ### selection
 print("### selection")
-divided_recoEini, divided_weights = get_hists.divide_vars_by_partype(reco_initial_energy, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoEend, divided_weights = get_hists.divide_vars_by_partype(reco_end_energy, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoflag, divided_weights = get_hists.divide_vars_by_partype(reco_sigflag, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoisct, divided_weights = get_hists.divide_vars_by_partype(reco_containing, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoEini, divided_weights = utils.divide_vars_by_partype(reco_initial_energy, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoEend, divided_weights = utils.divide_vars_by_partype(reco_end_energy, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoflag, divided_weights = utils.divide_vars_by_partype(reco_sigflag, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoisct, divided_weights = utils.divide_vars_by_partype(reco_containing, particle_type, mask=combined_mask, weight=weight_dt)
 data_reco_Eini = divided_recoEini[0]
 data_reco_Eend = divided_recoEend[0]
 data_reco_flag = divided_recoflag[0]
@@ -88,10 +87,10 @@ if inc_sys_reweiP:
 if inc_sys_MCXS:
     rdm_MCXS = np.random.normal(1, 0.15) # assign 15% uncertainty for MC XS model
     weight_mc *= reweight.cal_g4rw(processedVars_mc, rdm_MCXS)
-divided_recoEini_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_initial_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoEend_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoflag_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_sigflag_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoisct_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_containing_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoEini_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_initial_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoEend_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoflag_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_sigflag_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoisct_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_containing_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 Ntruemc = len(reco_initial_energy_mc[combined_mask_mc]) - len(divided_recoEini_mc[0])
 bkg_meas_N3D_list = []
 bkg_meas_N3D_err_list = []
@@ -109,7 +108,7 @@ for ibkg in range(3, len(divided_recoEini_mc)):
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.97, 1, 1.71, 1.20, 0.97, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.15, 0.12, 0.12, 0, 0]
 print(f"Bkg scale \t{bkg_scale}\nError \t\t{bkg_scale_err}")
-sig_meas_N3D, sig_meas_N3D_err = get_hists.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
+sig_meas_N3D, sig_meas_N3D_err = utils.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
 
 
 ### unfolding
@@ -124,10 +123,10 @@ true_sigflag_mc = processedVars_mc["true_sigflag"]
 true_containing_mc = processedVars_mc["true_containing"]
 
 particle_type_bool_mc = np.where(particle_type_mc==0, 0, 1) # 0 for fake data, 1 for truth MC
-divided_trueEini_mc, divided_weights_mc = get_hists.divide_vars_by_partype(true_initial_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_trueEend_mc, divided_weights_mc = get_hists.divide_vars_by_partype(true_end_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_trueflag_mc, divided_weights_mc = get_hists.divide_vars_by_partype(true_sigflag_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_trueisct_mc, divided_weights_mc = get_hists.divide_vars_by_partype(true_containing_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_trueEini_mc, divided_weights_mc = utils.divide_vars_by_partype(true_initial_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_trueEend_mc, divided_weights_mc = utils.divide_vars_by_partype(true_end_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_trueflag_mc, divided_weights_mc = utils.divide_vars_by_partype(true_sigflag_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_trueisct_mc, divided_weights_mc = utils.divide_vars_by_partype(true_containing_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
 mc_true_Eini = divided_trueEini_mc[1]
 mc_true_Eend = divided_trueEend_mc[1]
 mc_true_flag = divided_trueflag_mc[1]
@@ -138,11 +137,11 @@ mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex = slicing.get_sliceID_histogra
 mc_true_Nini, mc_true_Nend, mc_true_Nint_ex, mc_true_Ninc = slicing.derive_energy_histograms(mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex, Ntruebins, mc_true_weight)
 mc_true_SID3D, mc_true_N3D, mc_true_N3D_Vcov = slicing.get_3D_histogram(mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex, Ntruebins, mc_true_weight)
 
-divided_recoEini_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_initial_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_recoEend_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_end_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_recoflag_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_sigflag_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_recoisct_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_containing_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
-divided_FullSelection_mc, divided_weights_mc = get_hists.divide_vars_by_partype(mask_FullSelection_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_recoEini_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_initial_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_recoEend_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_recoflag_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_sigflag_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_recoisct_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_containing_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
+divided_FullSelection_mc, divided_weights_mc = utils.divide_vars_by_partype(mask_FullSelection_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
 pass_selection_mc = divided_FullSelection_mc[1]
 mc_reco_Eini = divided_recoEini_mc[1][pass_selection_mc]
 mc_reco_Eend = divided_recoEend_mc[1][pass_selection_mc]

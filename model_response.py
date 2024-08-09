@@ -1,6 +1,5 @@
 from hadana.packages import *
 #import ROOT
-import hadana.get_histograms as get_hists
 import hadana.slicing_method as slicing
 import hadana.multiD_mapping as multiD
 import hadana.parameters as parameters
@@ -40,10 +39,10 @@ true_sigflag = processedVars["true_sigflag"]
 true_containing = processedVars["true_containing"]
 
 particle_type_bool = np.where(particle_type==0, 0, 1) # 0 for fake data, 1 for truth MC
-divided_trueEini, divided_weights = get_hists.divide_vars_by_partype(true_initial_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_trueEend, divided_weights = get_hists.divide_vars_by_partype(true_end_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_trueflag, divided_weights = get_hists.divide_vars_by_partype(true_sigflag, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_trueisct, divided_weights = get_hists.divide_vars_by_partype(true_containing, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_trueEini, divided_weights = utils.divide_vars_by_partype(true_initial_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_trueEend, divided_weights = utils.divide_vars_by_partype(true_end_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_trueflag, divided_weights = utils.divide_vars_by_partype(true_sigflag, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_trueisct, divided_weights = utils.divide_vars_by_partype(true_containing, particle_type_bool, mask=combined_true_mask, weight=reweight)
 true_Eini = divided_trueEini[1]
 true_Eend = divided_trueEend[1]
 true_flag = divided_trueflag[1]
@@ -55,11 +54,11 @@ true_SIDini, true_SIDend, true_SIDint_ex = slicing.get_sliceID_histograms(true_E
 true_Nini, true_Nend, true_Nint_ex, true_Ninc = slicing.derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
 true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
 
-divided_recoEini, divided_weights = get_hists.divide_vars_by_partype(reco_initial_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_recoEend, divided_weights = get_hists.divide_vars_by_partype(reco_end_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_recoflag, divided_weights = get_hists.divide_vars_by_partype(reco_sigflag, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_recoisct, divided_weights = get_hists.divide_vars_by_partype(reco_containing, particle_type_bool, mask=combined_true_mask, weight=reweight)
-divided_FullSelection, divided_weights = get_hists.divide_vars_by_partype(mask_FullSelection, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_recoEini, divided_weights = utils.divide_vars_by_partype(reco_initial_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_recoEend, divided_weights = utils.divide_vars_by_partype(reco_end_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_recoflag, divided_weights = utils.divide_vars_by_partype(reco_sigflag, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_recoisct, divided_weights = utils.divide_vars_by_partype(reco_containing, particle_type_bool, mask=combined_true_mask, weight=reweight)
+divided_FullSelection, divided_weights = utils.divide_vars_by_partype(mask_FullSelection, particle_type_bool, mask=combined_true_mask, weight=reweight)
 pass_selection = divided_FullSelection[1]
 reco_Eini = divided_recoEini[1][pass_selection]
 reco_Eend = divided_recoEend[1][pass_selection]

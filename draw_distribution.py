@@ -1,5 +1,4 @@
 from hadana.packages import *
-import hadana.get_histograms as get_hists
 
 
 use_real_data = True
@@ -78,15 +77,15 @@ reco_trklen_mc = processedVars_mc["reco_track_length"]
 reco_sigflag_mc = processedVars_mc["reco_sigflag"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 
-divided_vars_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
 Nmc_sep = [sum(i) for i in divided_weights_mc[1:]]
 Nmc = sum(Nmc_sep)
 if use_real_data:
-    divided_vars_data, divided_weights_data = get_hists.divide_vars_by_partype(reco_end_energy_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
-    hists_data, hists_err_data, _ = get_hists.get_vars_hists(divided_vars_data, divided_weights_data, binedges)
+    divided_vars_data, divided_weights_data = utils.divide_vars_by_partype(reco_end_energy_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
+    hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_data, divided_weights_data, binedges)
     Ndata = sum(divided_weights_data[0])
 else:
-    hists_data, hists_err_data, _ = get_hists.get_vars_hists(divided_vars_mc, divided_weights_mc, binedges)
+    hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_mc, divided_weights_mc, binedges)
     Ndata = sum(divided_weights_mc[0])
 
 print(f"Ndata = {Ndata:.1f}, Nmc = {Nmc:.1f}")

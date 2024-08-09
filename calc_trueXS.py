@@ -1,5 +1,4 @@
 from hadana.packages import *
-import hadana.get_histograms as get_hists
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
 
@@ -20,10 +19,10 @@ true_containing = processedVars["true_containing"]
 particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
 reweight = processedVars["reweight"]
 
-divided_trueEini, divided_weights = get_hists.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
-divided_trueEend, divided_weights = get_hists.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
-divided_trueflag, divided_weights = get_hists.divide_vars_by_partype(true_sigflag, particle_type, mask=mask_TrueSignal, weight=reweight)
-divided_trueisct, divided_weights = get_hists.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
+divided_trueEini, divided_weights = utils.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
+divided_trueEend, divided_weights = utils.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
+divided_trueflag, divided_weights = utils.divide_vars_by_partype(true_sigflag, particle_type, mask=mask_TrueSignal, weight=reweight)
+divided_trueisct, divided_weights = utils.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
 true_Eini = divided_trueEini[0]
 true_Eend = divided_trueEend[0]
 true_flag = divided_trueflag[0]

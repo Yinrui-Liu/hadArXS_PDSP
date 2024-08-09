@@ -1,11 +1,9 @@
 from hadana.packages import *
 import ROOT
-import hadana.get_histograms as get_hists
 import hadana.slicing_method as slicing
 import hadana.multiD_mapping as multiD
 from hadana.BetheBloch import BetheBloch
 import hadana.parameters as parameters
-import hadana.MC_reweight as reweight
 
 
 beamPDG = 211
@@ -39,10 +37,10 @@ weight_dt = processedVars["reweight"]
 
 ### selection
 print("### selection")
-divided_recoEini, divided_weights = get_hists.divide_vars_by_partype(reco_initial_energy, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoEend, divided_weights = get_hists.divide_vars_by_partype(reco_end_energy, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoflag, divided_weights = get_hists.divide_vars_by_partype(reco_sigflag, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoisct, divided_weights = get_hists.divide_vars_by_partype(reco_containing, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoEini, divided_weights = utils.divide_vars_by_partype(reco_initial_energy, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoEend, divided_weights = utils.divide_vars_by_partype(reco_end_energy, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoflag, divided_weights = utils.divide_vars_by_partype(reco_sigflag, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recoisct, divided_weights = utils.divide_vars_by_partype(reco_containing, particle_type, mask=combined_mask, weight=weight_dt)
 data_reco_Eini = divided_recoEini[0]
 data_reco_Eend = divided_recoEend[0]
 data_reco_flag = divided_recoflag[0]
@@ -72,10 +70,10 @@ reco_containing_mc = processedVars_mc["reco_containing"]
 particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
 
-divided_recoEini_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_initial_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoEend_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoflag_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_sigflag_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoisct_mc, divided_weights_mc = get_hists.divide_vars_by_partype(reco_containing_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoEini_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_initial_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoEend_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoflag_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_sigflag_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recoisct_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_containing_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 Ntruemc = len(reco_initial_energy_mc[combined_mask_mc]) - len(divided_recoEini_mc[0])
 bkg_meas_N3D_list = []
 bkg_meas_N3D_err_list = []
@@ -93,7 +91,7 @@ for ibkg in range(3, len(divided_recoEini_mc)):
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.97, 1, 1.71, 1.20, 0.97, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.15, 0.12, 0.12, 0, 0]
 print(f"Bkg scale \t{bkg_scale}\nError \t\t{bkg_scale_err}")
-sig_meas_N3D, sig_meas_N3D_err = get_hists.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
+sig_meas_N3D, sig_meas_N3D_err = utils.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
 
 
 ### unfolding

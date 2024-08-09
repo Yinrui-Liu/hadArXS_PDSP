@@ -2,7 +2,6 @@ from hadana.packages import *
 from hadana.processor import Processor
 import hadana.selection as selection
 import hadana.MC_reweight as reweight
-import hadana.get_histograms as get_hists
 
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
@@ -138,7 +137,7 @@ plt.ylabel(r"$\chi^2$")
 plt.show()
 
 ### compare the histograms
-x_hist_data, data_errors, _ = get_hists.get_vars_hists([x_data], [weights_data], bins)
+x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data], bins)
 x_hist_data = x_hist_data[0]
 data_errors = data_errors[0]
 #x_hist_data, _ = np.histogram(x_data, bins, weights=weights_data)

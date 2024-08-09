@@ -1,7 +1,7 @@
 from hadana.packages import *
 from hadana.processor import Processor
 import hadana.selection as selection
-import hadana.get_histograms as get_hists
+
 
 # TB added fake data fits, and re-consider the normalization in fitting
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
@@ -172,7 +172,7 @@ sferr_mu = m.errors["scale_factor"]
 print(f"Best fit scale factor: {sf_mu}")
 print(f"Uncertainty on scale factor: {sferr_mu}")
 
-x_hist_data, data_errors, _ = get_hists.get_vars_hists([x_data], [weights_data_mu], bins)
+x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_mu], bins)
 x_hist_data = x_hist_data[0]
 data_errors = data_errors[0]
 x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_mu)
@@ -220,7 +220,7 @@ sferr_p = m.errors["scale_factor"]
 print(f"Best fit scale factor: {sf_p}")
 print(f"Uncertainty on scale factor: {sferr_p}")
 
-x_hist_data, data_errors, _ = get_hists.get_vars_hists([x_data], [weights_data_p], bins)
+x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_p], bins)
 x_hist_data = x_hist_data[0]
 data_errors = data_errors[0]
 x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_p)
@@ -268,7 +268,7 @@ sferr_spi = m.errors["scale_factor"]
 print(f"Best fit scale factor: {sf_spi}")
 print(f"Uncertainty on scale factor: {sferr_spi}")
 
-x_hist_data, data_errors, _ = get_hists.get_vars_hists([x_data], [weights_data_spi], bins)
+x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_spi], bins)
 x_hist_data = x_hist_data[0]
 data_errors = data_errors[0]
 x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_spi)
