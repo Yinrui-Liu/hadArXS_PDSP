@@ -5,10 +5,10 @@ import hadana.MC_reweight as reweight
 
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
-PDSP_ntuple_name = "PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04"
+PDSP_ntuple_name = "pduneana_MC_20g4rw"
 beamPDG = 211
-outfilename = "processed_files/procVars_bkgfit_data.pkl"
-Nevents = 40000 # change Nevents for smaller sample size
+outfilename = "processed_files/procVars_data.pkl"
+Nevents = None # change Nevents for smaller sample size
 
 
 PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")

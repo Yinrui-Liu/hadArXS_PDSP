@@ -72,7 +72,7 @@ else:
     PDSP_ntuple_MC = uproot.open(f"input_files/{PDSP_ntuple_name_MC}.root")
     pduneana_MC = PDSP_ntuple_MC["pduneana/beamana"]
 
-    eventset_MC = Processor(pduneana_MC, particle, isMC=True, selection=selection_momrew, fake_data=False, runPassStoppingProtonCut=True)
+    eventset_MC = Processor(pduneana_MC, particle, isMC=True, selection=selection_momrew, fake_data=False, runPassStoppingProtonCut=True, extra_correct_KEi=False)
     eventset_MC.fidvol_low = 0 # fiducial volume is not used
     eventset_MC.LoadVariables(variables_to_load)
     eventset_MC.ProcessEvent(Nevents=Nevents)
@@ -170,7 +170,7 @@ if draw_tratio: # draw tratio distribution
 if beamPDG == 211:
     mask_MC = np.array(mask_MC, dtype=bool) & (tratio_MC > 0.9)[:Nevents] # For muons, we select tratio > 0.9 based on the tratio plots. For proton, it is not necessary, since there is not a second peak caused by the broken tracks at the gap of the two TPCs
     mask_data = np.array(mask_data, dtype=bool) & (tratio_data > 0.9)[:Nevents]
-weights_MC = weights_MC[:Nevents][mask_MC]
+weights_MC = weights_MC[:Nevents][mask_MC] # in fact, weights is not used, which means we use the original MC to get the reweighting parameters
 weights_data = weights_data[:Nevents][mask_data]
 print(f"\nMC selected events: {len(weights_MC)}\tData selected events: {len(weights_data)}\n")
 mcweight = np.ones_like(weights_MC)*len(weights_data)/len(weights_MC)
@@ -262,8 +262,8 @@ oval_b = np.sqrt(lambda2)
 oval_phi = np.pi - 0.5 * np.arctan2(2 * cov_matrix[0,1], cov_matrix[0,0] - cov_matrix[1,1]) # rotation angle
 print(f"The error ellipse: a = {oval_a}, b = {oval_b}, phi = {oval_phi}")
 
-mu_list = np.linspace(960, 1040, 40) # (995, 1030) for pion, (980, 1010) for proton
-sigma_list = np.linspace(50, 90, 40) # (60, 85) for pion, (50, 70) for proton
+mu_list = np.linspace(960, 1040, 40) # (1000, 1030) for pion, (985, 1005) for proton, (960, 1040) by default
+sigma_list = np.linspace(50, 90, 40) # (60, 90) for pion, (50, 70) for proton, (50, 90) by default
 mm, ss = np.meshgrid(mu_list, sigma_list)
 Chi2 = np.zeros_like(mm)
 print(f"\nCalulating chi^2 for mu in [{mu_list[0]}, {mu_list[-1]}] and sigma in [{sigma_list[0]}, {sigma_list[-1]}]...")
@@ -341,5 +341,39 @@ plt.hist(true_beam_P_MC, bins=bins_p, histtype="step", label="MC true reweighted
 plt.legend()
 plt.title("true_beam_startP")
 plt.xlabel("True beam momentum [MeV]")
+plt.show()
+
+
+### extra correction to the beam_inst_KE distribution after reweighting true_beam_P
+if beamPDG == 211:
+    mu_init = 900
+    sigma_init = 60
+    bins_ke = np.linspace(600, 1200, 50)
+elif beamPDG == 2212:
+    mu_init = 450
+    sigma_init = 30
+    bins_ke = np.linspace(300, 600, 50)
+nnmc, xemc, _ = plt.hist(beam_inst_KE_MC, bins=bins_ke, weights=neweight, alpha=0.3, label="MC beam instrumented KE (after reweighting)")
+nndt, xedt, _ = plt.hist(beam_inst_KE_data, bins=bins_ke, alpha=0.3, label="Data beam instrumented KE")
+print(beam_inst_KE_MC, beam_inst_KE_data, sep='\n')
+c1 = cost.LeastSquares((xemc[1:]+xemc[:-1])/2, nnmc, np.maximum(np.sqrt(nnmc),1), gauss_extpdf)
+c2 = cost.LeastSquares((xedt[1:]+xedt[:-1])/2, nndt, np.maximum(np.sqrt(nndt),1), gauss_extpdf)
+
+m1 = iminuit.Minuit(c1, mu=mu_init, sigma=sigma_init, n=20000)
+m1.migrad() # Gaussian fit to beam_inst_KE_MC after reweighting
+mu0inst = m1.values["mu"]; mu0inst_err = m1.errors["mu"]
+sigma0inst = m1.values["sigma"]; sigma0inst_err = m1.errors["sigma"]
+print(f"beam_inst_KE_MC after reweighting fitted (mu, sigma, n) = ({mu0inst:.4f}±{mu0inst_err:.4f}, {sigma0inst:.4f}±{sigma0inst_err:.4f}, {m1.values['n']:.1f}±{m1.errors['n']:.1f})")
+
+m2 = iminuit.Minuit(c2, mu=mu_init, sigma=sigma_init, n=20000)
+m2.migrad() # Gaussian fit to beam_inst_KE_data
+muu = m2.values["mu"]; muu_err = m2.errors["mu"]
+sigmaa = m2.values["sigma"]; sigmaa_err = m2.errors["sigma"]
+print(f"beam_inst_KE_data fitted (mu, sigma, n) = ({muu:.4f}±{muu_err:.4f}, {sigmaa:.4f}±{sigmaa_err:.4f}, {m2.values['n']:.1f}±{m2.errors['n']:.1f})")
+
+print(f"The extra shifting is {muu-mu0inst}, smearing is sqrt({sigmaa*sigmaa-sigma0inst*sigma0inst}). Update them in Processor.ProcessEvent().")
+
+plt.xlabel("beam_inst_KE [MeV]")
+plt.legend()
 plt.show()
 print("Done")

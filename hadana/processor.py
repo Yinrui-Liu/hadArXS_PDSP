@@ -18,6 +18,7 @@ class Processor:
         self.fake_data = kwargs.get('fake_data', None) # for MC, fake_data is True for all fake data, False for all true MC, None for half-half
         self.incBQcut = kwargs.get('incBQcut', [True]*3) # include beam start XYZ cut, beam angle cut, beam scraper cut
         self.runPassStoppingProtonCut = kwargs.get('runPassStoppingProtonCut', False)
+        self.extra_correct_KEi = kwargs.get('extra_correct_KEi', True)
 
         # output variables
         self.true_initial_energy = []
@@ -71,7 +72,7 @@ class Processor:
             beam_inst_P = evt["beam_inst_P"]
             beam_inst_KE = np.sqrt( np.power(beam_inst_P*1000, 2) + self.particle.mass**2 ) - self.particle.mass
             upstream_energy_loss = GetUpstreamEnergyLoss(beam_inst_KE, self.particle.pdg)
-            if self.isMC:
+            if self.isMC and self.extra_correct_KEi:
                 if self.particle.pdg == 211:
                     beam_inst_KE += np.random.normal(-9.19, 21.61, Nbatch) # pionp Gaus(-9.19, 21.61)
                 elif self.particle.pdg == 2212:

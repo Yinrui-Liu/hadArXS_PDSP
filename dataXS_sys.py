@@ -1,5 +1,4 @@
 from hadana.packages import *
-import ROOT
 import hadana.slicing_method as slicing
 import hadana.multiD_mapping as multiD
 from hadana.BetheBloch import BetheBloch
@@ -7,9 +6,9 @@ import hadana.parameters as parameters
 import hadana.MC_reweight as reweight
 
 
-beamPDG = 2212
-datafilename = "processed_files/procVars_pdata.pkl"
-MCfilename = "processed_files/procVars_pMC.pkl"
+beamPDG = 211
+datafilename = "processed_files/procVars_pidata.pkl"
+MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
 inc_sys_bkg = True
 inc_sys_MCstat = False
