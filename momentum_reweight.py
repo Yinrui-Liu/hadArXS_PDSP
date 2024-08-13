@@ -172,7 +172,7 @@ if beamPDG == 211:
     mask_data = np.array(mask_data, dtype=bool) & (tratio_data > 0.9)[:Nevents]
 weights_MC = weights_MC[:Nevents][mask_MC]
 weights_data = weights_data[:Nevents][mask_data]
-print("MC selected events:", len(weights_MC), "\tData selected events:", len(weights_data))
+print(f"\nMC selected events: {len(weights_MC)}\tData selected events: {len(weights_data)}\n")
 mcweight = np.ones_like(weights_MC)*len(weights_data)/len(weights_MC)
 beam_inst_KE_MC = processedVars_MC["beam_inst_KE"][:Nevents][mask_MC]
 beam_inst_P_MC = np.sqrt(beam_inst_KE_MC*beam_inst_KE_MC + 2*beam_inst_KE_MC*particle.mass) # MeV
@@ -205,19 +205,19 @@ m1 = iminuit.Minuit(c1, mu=1000, sigma=60, n=2000)
 m1.migrad() # Gaussian fit to beam_inst_P_MC
 mu0inst = m1.values["mu"]; mu0inst_err = m1.errors["mu"]
 sigma0inst = m1.values["sigma"]; sigma0inst_err = m1.errors["sigma"]
-print(f"MC fitted (mu, sigma, n) = ({mu0inst:.4f}±{mu0inst_err:.4f}, {sigma0inst:.4f}±{sigma0inst_err:.4f}, {m1.values['n']:.1f}±{m1.errors['n']:.1f})")
+print(f"beam_inst_P_MC fitted (mu, sigma, n) = ({mu0inst:.4f}±{mu0inst_err:.4f}, {sigma0inst:.4f}±{sigma0inst_err:.4f}, {m1.values['n']:.1f}±{m1.errors['n']:.1f})")
 
 m2 = iminuit.Minuit(c2, mu=1000, sigma=60, n=2000)
 m2.migrad() # Gaussian fit to beam_inst_P_data
 muu = m2.values["mu"]; muu_err = m2.errors["mu"]
 sigmaa = m2.values["sigma"]; sigmaa_err = m2.errors["sigma"]
-print(f"Data fitted (mu, sigma, n) = ({muu:.4f}±{muu_err:.4f}, {sigmaa:.4f}±{sigmaa_err:.4f}, {m2.values['n']:.1f}±{m2.errors['n']:.1f})")
+print(f"beam_inst_P_data fitted (mu, sigma, n) = ({muu:.4f}±{muu_err:.4f}, {sigmaa:.4f}±{sigmaa_err:.4f}, {m2.values['n']:.1f}±{m2.errors['n']:.1f})")
 
 m3 = iminuit.Minuit(c3, mu=1000, sigma=60, n=2000)
 m3.migrad() # Gaussian fit to true_beam_P_MC
 mu0 = m3.values["mu"]; mu0_err = m3.errors["mu"]
 sigma0 = m3.values["sigma"]; sigma0_err = m3.errors["sigma"]
-print(f"MC true fitted (mu, sigma, n) = ({mu0:.4f}±{mu0_err:.4f}, {sigma0:.4f}±{sigma0_err:.4f}, {m3.values['n']:.1f}±{m3.errors['n']:.1f})")
+print(f"true_beam_P_MC fitted (mu, sigma, n) = ({mu0:.4f}±{mu0_err:.4f}, {sigma0:.4f}±{sigma0_err:.4f}, {m3.values['n']:.1f}±{m3.errors['n']:.1f})")
 plt.xlabel("Momentum [MeV]")
 plt.legend()
 plt.show()
@@ -241,29 +241,57 @@ def getChi2(mu, sigma, mu0=mu0, sigma0=sigma0, wlimit = 3):
     MChist, _ = np.histogram(reco_KE_from_trklen_MC, bins=xbins, weights=weight)
     chi2 = (datahist - MChist)**2/np.maximum(datahist + MChist, 1)
     return np.sum(chi2[1:-1])/(nbins-3), weight
-mu_list = np.linspace(960, 1040, 40)
-sigma_list = np.linspace(50, 80, 40)
-#mu_list = np.linspace(1.0075, 1.0225, 20)
-#sigma_list = np.linspace(0.06, 0.07, 20)
+
+# fit (mu, sigma) to minimize chi2
+def chi2_to_minimize(mu, sigma):
+    chi2_value, _ = getChi2(mu, sigma)
+    return chi2_value*(nbins-3) # the input function to Minuit is chi2 rather than chi2/ndof
+m = iminuit.Minuit(chi2_to_minimize, mu=1000, sigma=60)
+m.migrad()
+mu_fit = m.values["mu"]
+sigma_fit = m.values["sigma"]
+mu_err = m.errors["mu"]
+sigma_err = m.errors["sigma"]
+print(f"\nFitted mu: {mu_fit:.4f} ± {mu_err:.4f} MeV")
+print(f"Fitted sigma: {sigma_fit:.4f} ± {sigma_err:.4f} MeV")
+# get the one-sigma uncertainty ellipse
+cov_matrix = m.covariance
+lambda1, lambda2 = np.linalg.eigvalsh(cov_matrix)
+oval_a = np.sqrt(lambda1)
+oval_b = np.sqrt(lambda2)
+oval_phi = np.pi - 0.5 * np.arctan2(2 * cov_matrix[0,1], cov_matrix[0,0] - cov_matrix[1,1]) # rotation angle
+print(f"The error ellipse: a = {oval_a}, b = {oval_b}, phi = {oval_phi}")
+
+mu_list = np.linspace(960, 1040, 40) # (995, 1030) for pion, (980, 1010) for proton
+sigma_list = np.linspace(50, 90, 40) # (60, 85) for pion, (50, 70) for proton
 mm, ss = np.meshgrid(mu_list, sigma_list)
 Chi2 = np.zeros_like(mm)
-print(f"Calulating chi^2 for mu in [{mu_list[0]}, {mu_list[-1]}] and sigma in [{sigma_list[0]}, {sigma_list[-1]}]...")
+print(f"\nCalulating chi^2 for mu in [{mu_list[0]}, {mu_list[-1]}] and sigma in [{sigma_list[0]}, {sigma_list[-1]}]...")
 for i in range(len(mm)):
     for j in range(len(mm[0])):
         Chi2[i,j], _ = getChi2(mm[i,j], ss[i,j])
 
 plt.figure(figsize=[10,10])
-plt.imshow(Chi2,extent = [min(mu_list),max(mu_list),min(sigma_list),max(sigma_list)],origin="lower",aspect=(max(mu_list)-min(mu_list))/(max(sigma_list)-min(sigma_list)))
-plt.colorbar()
-plt.title(r"Figure of merit: $\chi^2/N{\rm df}$")
+plt.imshow(Chi2, extent = [min(mu_list),max(mu_list),min(sigma_list),max(sigma_list)],origin="lower",aspect=(max(mu_list)-min(mu_list))/(max(sigma_list)-min(sigma_list)))
+cbar = plt.colorbar()
+#cbar.set_label(r"Figure of merit (FOM): $\chi^2/N{\rm df}$")
+plt.title(r"Figure of merit (FOM): $\chi^2/N{\rm df}$")
 plt.xlabel(r"$\mu$ [MeV]")
 plt.ylabel(r"$\sigma$ [MeV]")
-plt.scatter([muu], [sigmaa], color="yellow", marker="o", label="Data inst")
-plt.scatter([mu0inst], [sigma0inst], color="blue", marker="o", label="MC inst")
-plt.scatter([mu0], [sigma0], color="lightgreen", marker="s", label="MC true original")
+plt.scatter([muu], [sigmaa], color="yellow", marker="o", label="Data beam inst P")
+plt.scatter([mu0inst], [sigma0inst], color="blue", marker="o", label="MC beam inst P")
+plt.scatter([mu0], [sigma0], color="lightgreen", marker="*", label="MC true beam P original")
+
+oval_phi_list = np.linspace(0, 2*np.pi, 100)
+oval_x = mu_fit + oval_a * np.cos(oval_phi_list) * np.cos(oval_phi) - oval_b * np.sin(oval_phi_list) * np.sin(oval_phi)
+oval_y = sigma_fit + oval_a * np.cos(oval_phi_list) * np.sin(oval_phi) + oval_b * np.sin(oval_phi_list) * np.cos(oval_phi)
+plt.plot(mu_fit, sigma_fit, 'r*', label=f"MC true beam P reweighted (FOM={getChi2(mu_fit, sigma_fit)[0]:.2f})")
+plt.plot(oval_x, oval_y, 'r:', label=r'1-$\sigma$ uncertainty ellipse')
+'''
+# previous naive 2D grid estimate rather than 2D fit
 minChi2 = np.min(Chi2)
 minidx = np.where(Chi2 == minChi2)
-onesigmaChi2 = minChi2 + 2.30/(nbins-1) # Table 40.2 https://pdg.lbl.gov/2020/reviews/rpp2020-rev-statistics.pdf
+onesigmaChi2 = minChi2 + 2.30/(nbins-3) # Table 40.2 https://pdg.lbl.gov/2020/reviews/rpp2020-rev-statistics.pdf
 onesigmaidx = []
 for i in range(len(mm)):
     for j in range(len(mm[0])-1):
@@ -283,12 +311,16 @@ print(f"Obtained mu = {mur:.5f} (res {np.average(mu_list[1:]-mu_list[:-1]):.2g})
 print(f"Obtained sigma = {sigmar:.5f} (res {np.average(sigma_list[1:]-sigma_list[:-1]):.2g})")
 plt.scatter(mur, sigmar, color="r", marker="*", label=f"MC true reweighted (FOM={minChi2:.2f})")
 plt.scatter(mm[tuple(np.transpose(onesigmaidx))], ss[tuple(np.transpose(onesigmaidx))], color="orange", marker=".", s=5, label=f"One-sigma (FOM={onesigmaChi2:.2f})")
+'''
 plt.legend(fontsize=12, loc="upper left")
+plt.xlim([mu_list[0], mu_list[-1]])
+plt.ylim([sigma_list[0], sigma_list[-1]])
 plt.show()
 
 
 ### plot the distributions after reweighting
-chi2, neweight = getChi2(mur, sigmar)
+print("\nShowing distributions after reweighting...")
+chi2, neweight = getChi2(mu_fit, sigma_fit)
 am,bm,_ = plt.hist(reco_KE_from_trklen_MC, density=True, bins=xbins, histtype="step", label="MC original", weights=mcweight)
 aa,bb,_ = plt.hist(reco_KE_from_trklen_data, density=True, bins=xbins, alpha=0.2, label="data")
 aw,bw,_ = plt.hist(reco_KE_from_trklen_MC, density=True, bins=xbins, histtype="step", label="MC reweighted", weights=neweight,color="r")
@@ -310,3 +342,4 @@ plt.legend()
 plt.title("true_beam_startP")
 plt.xlabel("True beam momentum [MeV]")
 plt.show()
+print("Done")
