@@ -43,7 +43,7 @@ class Particle:
             self.parBQ = parameters.protonBQ
     
     def PassSelection(self, evt, isMC, selection=[True]*10, **kwargs):
-        self.var_dict = {"daughter_michel_score":[], "chi2_protons":[], "beam_costh":[]} # some temporary calculated variables can be passed to Processor for further use
+        self.var_dict = {"daughter_michel_score":[], "chi2_protons":[], "beam_costh":[], "chi2_stopping_proton":[], "trklen_csda_proton":[]} # some temporary calculated variables can be passed to Processor for further use
         pass_selection = 1
         if self.pdg == 211:
             if selection[0] is True:
@@ -69,6 +69,8 @@ class Particle:
                 pass_selection *= self.PassFidVolCut(evt, self.parBQ, isMC)
             if selection[4] is True:
                 pass_selection *= self.PassStoppingProtonCut(evt, kwargs.get('reco_trklen'))
+            elif kwargs.get('runPassStoppingProtonCut', False): # not adding the cut, but to calculate the variables chi2_stopping_proton and trklen_csda_proton
+                self.PassStoppingProtonCut(evt, kwargs.get('reco_trklen'))
         pass_selection = np.array(pass_selection, dtype=bool)
         return pass_selection
         
@@ -196,7 +198,8 @@ class Particle:
         pass_cut = np.zeros_like(beam_inst_P, dtype=bool)
         pass_cut[short_indices] = chi2_stopping_proton[short_indices] > 7.5
         pass_cut[long_indices] = chi2_stopping_proton[long_indices] > 10
-
+        self.var_dict["chi2_stopping_proton"] = chi2_stopping_proton
+        self.var_dict["trklen_csda_proton"] = trklen_csda_proton
         return pass_cut
 
 def PassBeamQualityCut_xyz(beam_dxy, beam_dz):

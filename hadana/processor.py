@@ -17,6 +17,7 @@ class Processor:
         self.selection = kwargs.get('selection', [True]*10)
         self.fake_data = kwargs.get('fake_data', None) # for MC, fake_data is True for all fake data, False for all true MC, None for half-half
         self.incBQcut = kwargs.get('incBQcut', [True]*3) # include beam start XYZ cut, beam angle cut, beam scraper cut
+        self.runPassStoppingProtonCut = kwargs.get('runPassStoppingProtonCut', False)
 
         # output variables
         self.true_initial_energy = []
@@ -42,6 +43,8 @@ class Processor:
         self.Michel_score_bkgfit_mu = np.array([])
         self.proton_chi2_bkgfit_p = np.array([])
         self.costheta_bkgfit_spi = np.array([])
+        self.chi2_stopping_proton = np.array([])
+        self.trklen_csda_proton = np.array([])
         
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
@@ -222,13 +225,16 @@ class Processor:
             else:
                 mask_TrueSignal = np.zeros_like(true_beam_PDG, dtype=bool)
             mask_SelectedPart = self.particle.IsSelectedPart(evt)
-            mask_FullSelection = self.particle.PassSelection(evt, self.isMC, self.selection, reco_trklen=reco_trklen_batch, xyz_cut=self.incBQcut[0], angle_cut=self.incBQcut[1], scraper_cut=self.incBQcut[2])
+            mask_FullSelection = self.particle.PassSelection(evt, self.isMC, self.selection, reco_trklen=reco_trklen_batch, xyz_cut=self.incBQcut[0], angle_cut=self.incBQcut[1], scraper_cut=self.incBQcut[2], runPassStoppingProtonCut=True)
 
             # bkg fit variables
             if self.particle.pdg == 211:
                 self.Michel_score_bkgfit_mu = np.concatenate([self.Michel_score_bkgfit_mu, self.particle.var_dict["daughter_michel_score"]])
                 self.proton_chi2_bkgfit_p = np.concatenate([self.proton_chi2_bkgfit_p, self.particle.var_dict["chi2_protons"]])
                 self.costheta_bkgfit_spi = np.concatenate([self.costheta_bkgfit_spi, self.particle.var_dict["beam_costh"]])
+            elif self.particle.pdg == 2212:
+                self.chi2_stopping_proton = np.concatenate([self.chi2_stopping_proton, self.particle.var_dict["chi2_stopping_proton"]])
+                self.trklen_csda_proton = np.concatenate([self.trklen_csda_proton, self.particle.var_dict["trklen_csda_proton"]])
 
             Nevt_tot += Nbatch
             Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])
