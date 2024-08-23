@@ -10,7 +10,7 @@ from iminuit import cost
 ### load the corresponding ntuples
 PDSP_ntuple_name_MC = "pduneana_MC_20g4rw"
 PDSP_ntuple_name_data = "PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04"
-beamPDG = 211
+beamPDG = 2212
 outfilename_MC = f"processed_files/procVars_momrew_MC_{beamPDG}.pkl"
 outfilename_data = f"processed_files/procVars_momrew_data_{beamPDG}.pkl"
 Nevents = None

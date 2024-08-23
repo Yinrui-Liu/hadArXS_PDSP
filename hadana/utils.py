@@ -89,6 +89,33 @@ def fit_gaus_hist(data, weights, x_range, initial_guesses):
     # Perform the minimization
     m.migrad()
     return m
+def double_gaussian(x, mu1, sigma1, mu2, sigma2, alpha):
+        return alpha * np.exp(-(x - mu1)**2 / (2 * sigma1**2)) / np.sqrt(2*np.pi) / sigma1 + (1-alpha) * np.exp(-(x - mu2)**2 / (2 * sigma2**2)) / np.sqrt(2*np.pi) / sigma2
+def fit_doublegaus_hist(data, weights, x_range, initial_guesses):
+    mask = (data >= x_range[0]) & (data <= x_range[1])
+    data = data[mask]
+    weights = weights[mask]
+    
+    # Define the negative log-likelihood function
+    def negative_log_likelihood(mu1, sigma1, mu2, sigma2, alpha):
+        # Ensure sigma is positive to avoid taking log of zero or negative values
+        if sigma1<=0 or sigma2<=0 or alpha>1 or alpha<0.5:
+            return np.inf
+        
+        # Compute the double-Gaussian PDF values
+        pdf_values = double_gaussian(data, mu1, sigma1, mu2, sigma2, alpha)
+        
+        # Negative log-likelihood
+        nll = -np.sum(weights * np.log(pdf_values))
+        return nll
+
+    # Initialize Minuit
+    params_dict = {name: val for name, val in zip(negative_log_likelihood.__code__.co_varnames, initial_guesses)}
+    m = iminuit.Minuit(negative_log_likelihood, **params_dict)
+
+    # Perform the minimization
+    m.migrad()
+    return m
 
 def cal_chi2_2hists(arr_1, arr_2, weight_1, weight_2, bins, fit_range=None, scale21=None): # bins and fit_range should be increasing
     if fit_range is None:

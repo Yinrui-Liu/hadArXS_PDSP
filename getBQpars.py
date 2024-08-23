@@ -6,17 +6,17 @@ import hadana.MC_reweight as reweight
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
-beamPDG = 211
+beamPDG = 2212
 Nevents = None
 
 
 PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")
 if "MC" in PDSP_ntuple_name:
     isMC = True
+    outfilename = f"processed_files/procVars_getBQpars{beamPDG}_MC.pkl"
 else:
     isMC = False
-pduneana = PDSP_ntuple["pduneana/beamana"]
-
+    outfilename = f"processed_files/procVars_getBQpars{beamPDG}_data.pkl"
 variables_to_load = [
     "event",
     "reco_beam_calo_wire",
@@ -66,18 +66,28 @@ elif beamPDG == 2212:
     particle = selection.Particle(beamPDG, 938.272)
     particle.SetCandidatePDGlist(2212)
 
-eventset = Processor(pduneana, particle, isMC, selection=[True,True,False,False,False,False], fake_data=False) # selection up to beam quality cuts
-eventset.LoadVariables(variables_to_load)
-eventset.ProcessEvent(Nevents=Nevents)
-processedVars = eventset.GetOutVarsDict()
+PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")
+pduneana = PDSP_ntuple["pduneana/beamana"] # need to load ntuple to get some BQ-related variables, but just no need to process if the processed file exists
+if os.path.exists(outfilename):
+    with open(outfilename, 'rb') as procfile:
+        processedVars = pickle.load(procfile)
+    print(f"Using existing file {outfilename}")
+else:
+    eventset = Processor(pduneana, particle, isMC, selection=[True,True,False,False,False,False], fake_data=False) # selection up to beam quality cuts
+    eventset.LoadVariables(variables_to_load)
+    eventset.ProcessEvent(Nevents=Nevents)
+    processedVars = eventset.GetOutVarsDict()
 
-weights = reweight.cal_bkg_reweight(processedVars) * reweight.cal_momentum_reweight(processedVars)
-processedVars["reweight"] = weights
+    weights = reweight.cal_bkg_reweight(processedVars) * reweight.cal_momentum_reweight(processedVars)
+    processedVars["reweight"] = weights
+
+    with open(outfilename, 'wb') as procfile:
+        pickle.dump(processedVars, procfile)
 
 mask_SelectedPart = processedVars["mask_SelectedPart"]
 mask_FullSelection = processedVars["mask_FullSelection"]
 mask = (mask_SelectedPart & mask_FullSelection)[:Nevents]
-weights = weights[:Nevents][mask]
+weights = processedVars["reweight"][:Nevents][mask]
 
 
 ### start x
@@ -171,21 +181,26 @@ dir = np.transpose(dir)/norms
 
 ### angle x
 x_data = np.arccos(dir[0]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, weights, x_range=[97, 105], initial_guesses=[101, 3]) # may update to double gaussian fit in the future
+m = utils.fit_gaus_hist(x_data, weights, x_range=[100, 104], initial_guesses=[102, 1.5]) # pionMC: x_range=[100, 104], initial_guesses=[102, 1.5]; piondata: x_range=[99, 103], initial_guesses=[101, 1.5]; protonMC: x_range=[100, 104], initial_guesses=[102, 1.5]; protondata: x_range=[99, 103], initial_guesses=[101, 1.5]
+#m = utils.fit_doublegaus_hist(x_data, weights, x_range=[97.5, 106.5], initial_guesses=[102, 1.5, 102, 15, 0.8]) # double gaussian fit
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
+#print(f"Fitted parameters: mu1={m.values['mu1']:.2f}±{m.errors['mu1']:.2f}, sigma1={m.values['sigma1']:.2f}±{m.errors['sigma1']:.2f}, mu2={m.values['mu2']:.2f}±{m.errors['mu2']:.2f}, sigma2={m.values['sigma2']:.2f}±{m.errors['sigma2']:.2f}, alpha={m.values['alpha']:.2f}±{m.errors['alpha']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [70, 130]
 plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
+#y_fit = utils.double_gaussian(x_fit, m.values['mu1'], m.values['sigma1'], m.values['mu2'], m.values['sigma2'], m.values['alpha'])
+#plt.plot(x_fit, y_fit, color='red', label='Fitted double-Gaussian')
 plt.legend()
 plt.xlabel("theta_x (deg)")
 plt.show()
 
 ### angle y
 x_data = np.arccos(dir[1]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, weights, x_range=[96, 108], initial_guesses=[102, 4])
+m = utils.fit_gaus_hist(x_data, weights, x_range=[99, 103], initial_guesses=[101, 1.5]) # pionMC: x_range=[99, 103], initial_guesses=[101, 1.5]; piondata: x_range=[101.5, 105.5], initial_guesses=[103.5, 1.5]; protonMC: x_range=[99, 103], initial_guesses=[101, 1.5]; protondata: x_range=[102, 106], initial_guesses=[104, 1.5]
+#m = utils.fit_doublegaus_hist(x_data, weights, x_range=[97.5, 106.5], initial_guesses=[102, 1.5, 102, 15, 0.8])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [70, 130]
@@ -199,7 +214,8 @@ plt.show()
 
 ### angle z
 x_data = np.arccos(dir[2]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, weights, x_range=[12, 22], initial_guesses=[17, 3.5])
+m = utils.fit_gaus_hist(x_data, weights, x_range=[12.5, 20.5], initial_guesses=[16.5, 2]) # pionMC: x_range=[12, 20], initial_guesses=[16, 2]; piondata: x_range=[14, 22], initial_guesses=[18, 2]; protonMC: x_range=[12.5, 20.5], initial_guesses=[16.5, 2]; protondata: x_range=[14, 22], initial_guesses=[18, 2]
+#m = utils.fit_doublegaus_hist(x_data, weights, x_range=[10, 22], initial_guesses=[16, 2, 16, 20, 0.8])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [-5, 40]

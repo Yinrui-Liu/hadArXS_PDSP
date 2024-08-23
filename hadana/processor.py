@@ -74,9 +74,9 @@ class Processor:
             upstream_energy_loss = GetUpstreamEnergyLoss(beam_inst_KE, self.particle.pdg)
             if self.isMC and self.extra_correct_KEi:
                 if self.particle.pdg == 211:
-                    beam_inst_KE += np.random.normal(-9.19, 21.61, Nbatch) # pionp Gaus(-9.19, 21.61)
+                    beam_inst_KE += np.random.normal(-10.9, 0, Nbatch)
                 elif self.particle.pdg == 2212:
-                    beam_inst_KE += np.random.normal(3.45, 0, Nbatch) # proton Gaus(3.45, 0)
+                    beam_inst_KE += np.random.normal(2.9, 0, Nbatch)
             reco_frontfaceKE = beam_inst_KE - upstream_energy_loss
             reco_trklen_batch = np.zeros(Nbatch)
 
@@ -296,12 +296,14 @@ class Processor:
         return outVars
 
 
-def GetUpstreamEnergyLoss(beamKE, pdg, momentum=1):
+def GetUpstreamEnergyLoss(beamKE, pdg, momentum=1): # 2nd polynominal parameters derived from model_upEloss.py
     upEloss = 0
     if pdg == 211 and momentum == 1:
-        upEloss = 95.8 - 0.408*beamKE + 0.000347*np.power(beamKE, 2)
+        tmpKE = np.clip(beamKE, 700, 1050)
+        upEloss = 521.2 - 1.291*tmpKE + 0.0007942*np.power(tmpKE, 2)
     elif pdg == 2212 and momentum == 1:
-        upEloss = 26.9
+        tmpKE = np.clip(beamKE, 300, 600)
+        upEloss = 110.8 - 0.4589*tmpKE + 0.0006047*np.power(tmpKE, 2)
     else:
         raise Exception(f"No mode implemented for pdg={pdg} momentum={momentum}.")
     return upEloss

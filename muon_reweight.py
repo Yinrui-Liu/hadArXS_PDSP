@@ -105,6 +105,7 @@ mask_FullSelection = processedVars_MC["mask_FullSelection"]
 mask_MC = (mask_SelectedPart & mask_FullSelection)[:Nevents]
 weights_MC = processedVars_MC["reweight"]
 weights_MC = weights_MC[:Nevents][mask_MC]
+weights_MC = np.ones_like(weights_MC) # do not include the existing weights (which may include muon reweight and momentum reweight)
 x_MC = processedVars_MC["reco_track_length"][:Nevents][mask_MC]
 par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
 
@@ -118,12 +119,12 @@ x_data = processedVars_data["reco_track_length"][:Nevents][mask_data]
 bins = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 500]
 
 ### get muon reweight
-wmu_list = np.linspace(0.8, 1.2, 100)
+wmu_list = np.linspace(1.5, 1.65, 100)
 chi2_list = []
 for wmu in wmu_list:
     weight_mu = np.where(par_type_MC==3, wmu, 1)
     weights_MC_rew = weights_MC*weight_mu
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data, weights_MC_rew, bins, fit_bins=[15, len(bins)-1]) # [150, 500]
+    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data, weights_MC_rew, bins, fit_range=[150, 500])
     chi2_list.append(chi2)
 min_chi2 = min(chi2_list)
 min_chi2_index = chi2_list.index(min_chi2)
@@ -155,7 +156,7 @@ plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', 
 #plt.bar(bin_centers, x_hist_data, width=bin_widths, alpha=0.6, label='Data', color='k')
 plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data)/sum(weights_MC), [0]]), where='post', label='Original MC', color='gold')
 #plt.bar(bin_centers, x_hist_MC*sum(weights_data)/sum(weights_MC), width=bin_widths, label='Original MC', edgecolor='r', linestyle='--', fill=False)
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (muon weight = {wmu_min})', color='r', linestyle='--')
+plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (muon weight = {wmu_min:.3f})', color='r', linestyle='--')
 plt.xlabel('Reconstructed track length [cm]')
 plt.ylabel('Counts (all normalized to data)')
 plt.title('Histograms of Data and MC')

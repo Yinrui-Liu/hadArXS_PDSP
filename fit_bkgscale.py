@@ -163,7 +163,7 @@ fit_range = [0.6, 0.9]
 def sideband_fit_mu(scale_factor):
     weight_bkg = np.where( (par_type_MC==3)|(par_type_MC==7), scale_factor, 1)
     weights_MC_rew = weights_MC_mu*weight_bkg
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_mu, weights_MC_rew, bins, fit_range)
+    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_mu, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_mu)/np.sum(weights_MC_mu))
     return chi2
 m = iminuit.Minuit(sideband_fit_mu, scale_factor=1)
 m.migrad()
@@ -211,7 +211,7 @@ fit_range = [20, 70]
 def sideband_fit_p(scale_factor):
     weight_bkg = np.where(par_type_MC==5, scale_factor, 1)
     weights_MC_rew = weights_MC_p*weight_bkg
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_p, weights_MC_rew, bins, fit_range)
+    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_p, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_p)/np.sum(weights_MC_p))
     return chi2
 m = iminuit.Minuit(sideband_fit_p, scale_factor=1)
 m.migrad()
@@ -259,7 +259,7 @@ fit_range = [0.9, 0.95]
 def sideband_fit_spi(scale_factor):
     weight_bkg = np.where(par_type_MC==6, scale_factor, 1)
     weights_MC_rew = weights_MC_spi*weight_bkg
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_spi, weights_MC_rew, bins, fit_range)
+    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_spi, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_spi)/np.sum(weights_MC_spi))
     return chi2
 m = iminuit.Minuit(sideband_fit_spi, scale_factor=1)
 m.migrad()
@@ -283,6 +283,35 @@ plt.figure(figsize=(10, 6))
 plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
 plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_spi)/sum(weights_MC_spi), [0]]), where='post', label='Original MC', color='gold')
 plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_spi)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary pion weight = {sf_spi:.3f}±{sferr_spi:.3f})', color='r', linestyle='--')
+
+pardict = {
+    0: "Data", 
+    1: "PiInel", 
+    2: "PiDecay", 
+    3: "Muon", 
+    4: "misID:cosmic", 
+    5: "misID:p", 
+    6: "misID:pi", 
+    7: "misID:mu", 
+    8: "misID:e/γ", 
+    9: "misID:other", 
+}
+parcolordict = {
+    "PiInel": "firebrick",
+    "PInel": "firebrick",
+    "PiDecay": "orange",
+    "PElas": "orange",
+    "Muon": "springgreen",
+    "misID:cosmic": "deepskyblue",
+    "misID:p": "darkviolet",
+    "misID:pi": "hotpink",
+    "misID:mu": "green",
+    "misID:e/γ": "yellow",
+    "misID:other": "peru",
+}
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_rew)
+plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
+
 plt.xlabel(r'Beam angle $\cos\theta$')
 plt.ylabel('Counts (all normalized to data)')
 plt.legend()

@@ -5,7 +5,7 @@ import hadana.MC_reweight as reweight
 
 
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
-beamPDG = 211
+beamPDG = 2212
 Nevents = None
 
 
@@ -88,16 +88,17 @@ plt.xlabel('beam_inst_KE [MeV]')
 plt.ylabel('beam_inst_KE - true_Eff [MeV]')
 if beamPDG == 211:
     xrange = [600, 1100]
+    x_fit = np.linspace(700, 1050, 100)
     fit_filter = (beam_inst_KE > 700) & (beam_inst_KE < 1050) & (upEloss > -100) & (upEloss < 150)
 elif beamPDG == 2212:
     xrange = [250, 650]
+    x_fit = np.linspace(300, 600, 100)
     fit_filter = (beam_inst_KE > 300) & (beam_inst_KE < 600) & (upEloss > -50) & (upEloss < 100)
 # Fit a quadratic curve
 coeffs, cov_matrix = np.polyfit(beam_inst_KE[fit_filter], upEloss[fit_filter], 2, w=weights[fit_filter], cov=True)
 errors = np.sqrt(np.diag(cov_matrix))
 print(f"Fit Parameters: a = {coeffs[0]:.4g} ± {errors[0]:.4g}, b = {coeffs[1]:.4g} ± {errors[1]:.4g}, c = {coeffs[2]:.4g} ± {errors[2]:.4g}")
 poly = np.poly1d(coeffs)
-x_fit = np.linspace(*xrange, 100)
 y_fit = poly(x_fit)
 plt.plot(x_fit, y_fit, color='red', linestyle='--', label=f'Quadratic Fit')
 plt.legend()
