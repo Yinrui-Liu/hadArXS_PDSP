@@ -5,7 +5,7 @@ import hadana.MC_reweight as reweight
 
 
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
-beamPDG = 2212
+beamPDG = 211
 Nevents = None
 
 

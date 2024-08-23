@@ -7,7 +7,7 @@ import hadana.parameters as parameters
 
 beamPDG = 211
 procfilename = "processed_files/procVars_piMC.pkl"
-respfilename = "processed_files/response.pkl"
+respfilename = "processed_files/response_pi.pkl"
 
 
 with open(procfilename, 'rb') as procfile:

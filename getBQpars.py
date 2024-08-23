@@ -6,7 +6,7 @@ import hadana.MC_reweight as reweight
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
-beamPDG = 2212
+beamPDG = 211
 Nevents = None
 
 
@@ -214,7 +214,7 @@ plt.show()
 
 ### angle z
 x_data = np.arccos(dir[2]) * 180/np.pi
-m = utils.fit_gaus_hist(x_data, weights, x_range=[12.5, 20.5], initial_guesses=[16.5, 2]) # pionMC: x_range=[12, 20], initial_guesses=[16, 2]; piondata: x_range=[14, 22], initial_guesses=[18, 2]; protonMC: x_range=[12.5, 20.5], initial_guesses=[16.5, 2]; protondata: x_range=[14, 22], initial_guesses=[18, 2]
+m = utils.fit_gaus_hist(x_data, weights, x_range=[12, 20], initial_guesses=[16, 2]) # pionMC: x_range=[12, 20], initial_guesses=[16, 2]; piondata: x_range=[14, 22], initial_guesses=[18, 2]; protonMC: x_range=[12.5, 20.5], initial_guesses=[16.5, 2]; protondata: x_range=[14, 22], initial_guesses=[18, 2]
 #m = utils.fit_doublegaus_hist(x_data, weights, x_range=[10, 22], initial_guesses=[16, 2, 16, 20, 0.8])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function

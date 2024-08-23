@@ -20,18 +20,18 @@ costh_max = 2
 dxy_inst_sq_max = 4.5
 
 pionBQ = {
-    "beam_startX_mc": -30.46,
-    "beam_startX_rms_mc": 4.28,
+    "beam_startX_mc": -30.47,
+    "beam_startX_rms_mc": 4.29,
     "beam_startY_mc": 422.21,
-    "beam_startY_rms_mc": 4.02,
+    "beam_startY_rms_mc": 4.03,
     "beam_startZ_mc": 0.108,
     "beam_startZ_rms_mc": 0.192,
-    "beam_startX_mc_inst": -29.04,
+    "beam_startX_mc_inst": -29.05,
     "beam_startX_rms_mc_inst": 4.14,
     "beam_startY_mc_inst": 421.71,
     "beam_startY_rms_mc_inst": 3.73,
     "beam_angleX_mc": 101.90,
-    "beam_angleY_mc": 101.08,
+    "beam_angleY_mc": 101.07,
     "beam_angleZ_mc": 16.31,
 
     "beam_startX_data": -28.64,

@@ -10,11 +10,14 @@ beamPDG = 211
 datafilename = "processed_files/procVars_pidata.pkl"
 MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
+bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.87, 1, 2.28, 1.89, 0.87, 1, 1]
+bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.28, 0, 0.25, 0.23, 0.28, 0, 0]
 inc_sys_bkg = True
 inc_sys_MCstat = False
 inc_sys_MCXS = False
 inc_sys_reweiP = False
 inc_sys_Eloss = False
+niter = 49 # 49 for pion data, 16 for proton data
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -104,8 +107,6 @@ for ibkg in range(3, len(divided_recoEini_mc)):
     bkg_meas_N3D_list.append(bkg_meas_N3D)
     bkg_meas_N3D_err_list.append(np.sqrt(np.diag(bkg_meas_N3D_Vcov)))
 
-bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.94, 1, 2.33, 1.95, 0.94, 1, 1]
-bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.26, 0, 0.25, 0.24, 0.26, 0, 0]
 print(f"Bkg scale \t{bkg_scale}\nError \t\t{bkg_scale_err}")
 sig_meas_N3D, sig_meas_N3D_err = utils.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
 
@@ -186,7 +187,7 @@ sig_meas_V1D = np.diag(sig_meas_N1D_err*sig_meas_N1D_err)
 #print(sig_meas_N1D, sig_meas_N1D_err, sep='\n')
 
 sig_MC_scale = sum(sig_meas_N1D)/sum(mc_meas_N3D)
-sig_unfold, sig_unfold_cov = multiD.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=23)
+sig_unfold, sig_unfold_cov = multiD.unfolding(sig_meas_N1D, sig_meas_V1D, response, niter=niter)
 if inc_sys_MCstat:
     unfd_N3D, unfd_N3D_Vcov = multiD.efficiency_correct_1Dvar(sig_unfold, sig_unfold_cov, eff1D, true_3D1D_map, Ntruebins_3D, mc_true_N3D, mc_true_N3D_Vcov, sig_MC_scale, utils.safe_divide(mc_true_N1D_fluc, mc_true_N1D_nominal))
 else:

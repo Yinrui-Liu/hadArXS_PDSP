@@ -3,12 +3,13 @@ import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
 
 
-beamPDG = 2212
-#true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
-true_bins = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
+beamPDG = 211
 with open('processed_files/procVars_pMC.pkl', 'rb') as procfile:
     processedVars = pickle.load(procfile)
-
+if beamPDG == 211:
+    true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
+elif beamPDG == 2212:
+    true_bins = np.array([500,475,450,425,400,375,350,325,300,275,250,225,200,175,150,125,100,75,50,25,0])
 
 mask_TrueSignal = processedVars["mask_TrueSignal"]
 true_initial_energy = processedVars["true_initial_energy"]

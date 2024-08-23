@@ -7,7 +7,7 @@ def cal_bkg_reweight(procVars):
     if not procVars["isMC"]:
         return weight
     
-    mufrac = 1.583
+    mufrac = 1.63
     #weight[(true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1)] *= mufrac
     weight = np.where((true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1), weight * mufrac, weight)
     return weight
@@ -20,29 +20,29 @@ def cal_momentum_reweight(procVars, rdm_radius=0, rdm_angle=0):
         return weight
     
     if procVars["beamPDG"] == 211:
-        mom_mu0 = 1.0057
-        mom_sigma0 = 0.0623
-        mom_mu = 1.0242
-        mom_sigma = 0.0812
+        mom_mu0 = 1.0046
+        mom_sigma0 = 0.0617
+        mom_mu = 1.0198
+        mom_sigma = 0.0744
         if rdm_radius != 0:
-            oval_cx = 1.0242
-            oval_cy = 0.0812
-            oval_a = 0.0025
-            oval_b = 0.0063
-            oval_phi = 2.370
+            oval_cx = 1.0198
+            oval_cy = 0.0744
+            oval_a = 0.0020
+            oval_b = 0.0039
+            oval_phi = 2.446
             mom_mu = oval_cx + rdm_radius * (oval_a * math.cos(oval_phi) * math.cos(rdm_angle) - oval_b * math.sin(oval_phi) * math.sin(rdm_angle))
             mom_sigma = oval_cy + rdm_radius * (oval_a * math.sin(oval_phi) * math.cos(rdm_angle) + oval_b * math.cos(oval_phi) * math.sin(rdm_angle))
     elif procVars["beamPDG"] == 2212:
-        mom_mu0 = 0.9939
+        mom_mu0 = 0.9941
         mom_sigma0 = 0.0547
-        mom_mu = 0.9896
-        mom_sigma = 0.0643
+        mom_mu = 0.9898
+        mom_sigma = 0.0644
         if rdm_radius != 0:
-            oval_cx = 0.9896
-            oval_cy = 0.0643
-            oval_a = 0.0004
-            oval_b = 0.0011
-            oval_phi = 2.651
+            oval_cx = 0.9898
+            oval_cy = 0.0644
+            oval_a = 0.0007
+            oval_b = 0.0008
+            oval_phi = 3.639
             mom_mu = oval_cx + rdm_radius * (oval_a * math.cos(oval_phi) * math.cos(rdm_angle) - oval_b * math.sin(oval_phi) * math.sin(rdm_angle))
             mom_sigma = oval_cy + rdm_radius * (oval_a * math.sin(oval_phi) * math.cos(rdm_angle) + oval_b * math.cos(oval_phi) * math.sin(rdm_angle))
     else:

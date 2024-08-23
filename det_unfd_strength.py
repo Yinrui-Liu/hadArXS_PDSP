@@ -6,9 +6,11 @@ from scipy import stats
 
 
 beamPDG = 211
-datafilename = "processed_files/procVars_pdata.pkl"
-MCfilename = "processed_files/procVars_pMC.pkl"
+datafilename = "processed_files/procVars_pidata.pkl"
+MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
+bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.87, 1, 2.28, 1.89, 0.87, 1, 1]
+bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.28, 0, 0.25, 0.23, 0.28, 0, 0]
 inc_sys_bkg = True
 
 if beamPDG == 211:
@@ -86,8 +88,6 @@ for ibkg in range(3, len(divided_recoEini_mc)):
     bkg_meas_N3D_list.append(bkg_meas_N3D)
     bkg_meas_N3D_err_list.append(np.sqrt(np.diag(bkg_meas_N3D_Vcov)))
 
-bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.97, 1, 1.71, 1.20, 0.97, 1, 1]
-bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.15, 0.12, 0.12, 0, 0]
 print(f"Bkg scale \t{bkg_scale}\nError \t\t{bkg_scale_err}")
 sig_meas_N3D, sig_meas_N3D_err = utils.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
 
