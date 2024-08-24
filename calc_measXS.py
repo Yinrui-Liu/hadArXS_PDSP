@@ -14,6 +14,7 @@ resfilename = "processed_files/response_pi.pkl"
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.87, 1, 2.28, 1.89, 0.87, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.28, 0, 0.25, 0.23, 0.28, 0, 0]
 inc_sys_bkg = True
+plot_energy_hists = False
 niter = 20
 
 if beamPDG == 211:
@@ -52,7 +53,7 @@ data_reco_weight = divided_weights[0]
 
 Ndata = len(data_reco_Eini)
 Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
-Nmeasbins = len(meas_bins)
+Nmeasbins, Nmeasbins_3D, meas_cKE, meas_wKE = utils.set_bins(meas_bins)
 data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex = slicing.get_sliceID_histograms(data_reco_Eini, data_reco_Eend, data_reco_flag, data_reco_isCt, meas_bins)
 data_meas_SID3D, data_meas_N3D, data_meas_N3D_Vcov = slicing.get_3D_histogram(data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex, Nmeasbins, data_reco_weight)
 data_meas_N3D_err = np.sqrt(np.diag(data_meas_N3D_Vcov))
@@ -120,13 +121,72 @@ unfd_N3D, unfd_N3D_Vcov = multiD.efficiency_correct_1Dvar(sig_unfold, sig_unfold
 unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unfd_N3D, Ntruebins)
 #print(unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc, sep='\n')
 
-
 ### calculate cross section
 unfd_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
 unfd_3N_Vcov = slicing.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
-unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
+bb = BetheBloch(beamPDG)
+unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, bb)
 print(f"Measured cross section \t{unfd_XS}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))}")
 
+if plot_energy_hists:
+    unfd_Nini_err = np.sqrt(np.diagonal(unfd_3SID_Vcov)[1:Ntruebins])
+    unfd_Ninc_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[:Ntruebins-1])
+    unfd_Nend_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[Ntruebins-1:2*(Ntruebins-1)])
+    unfd_Nint_ex_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[2*(Ntruebins-1):])
+    
+    meas_Nini, meas_Nend, meas_Nint_ex, meas_Ninc = multiD.get_unfold_histograms(sig_meas_N3D, Nmeasbins)
+    meas_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(np.diag(sig_meas_N3D_err*sig_meas_N3D_err), Nmeasbins)
+    meas_3N_Vcov = slicing.get_Cov_3N_from_3SID(meas_3SID_Vcov, Nmeasbins)
+    meas_XS, meas_XS_Vcov = slicing.calculate_XS_Cov_from_3N(meas_Ninc, meas_Nend, meas_Nint_ex, meas_3N_Vcov, meas_bins, bb)
+    meas_Nini_err = np.sqrt(np.diagonal(meas_3SID_Vcov)[1:Nmeasbins])
+    meas_Ninc_err = np.sqrt(np.diagonal(meas_3N_Vcov)[:Nmeasbins-1])
+    meas_Nend_err = np.sqrt(np.diagonal(meas_3N_Vcov)[Nmeasbins-1:2*(Nmeasbins-1)])
+    meas_Nint_ex_err = np.sqrt(np.diagonal(meas_3N_Vcov)[2*(Nmeasbins-1):])
+
+    # plot Nini
+    plt.errorbar(meas_cKE, meas_Nini, meas_Nini_err, meas_wKE, "r.", label="Measured")
+    plt.errorbar(true_cKE, unfd_Nini, unfd_Nini_err, true_wKE, "b.", label="Unfolded")
+    plt.title(r"Initial histogram $N_{\rm ini}$")
+    plt.xlabel("Kinetic energy (MeV)")
+    plt.ylabel("Counts")
+    plt.xlim([true_bins[-1], true_bins[0]])
+    plt.ylim(bottom=0)
+    plt.legend()
+    plt.savefig("plot/Nini_energy_hist.pdf")
+    plt.clf()
+    # plot Nend
+    plt.errorbar(meas_cKE, meas_Nend, meas_Nend_err, meas_wKE, "r.", label="Measured")
+    plt.errorbar(true_cKE, unfd_Nend, unfd_Nend_err, true_wKE, "b.", label="Unfolded")
+    plt.title(r"End histogram $N_{\rm end}$")
+    plt.xlabel("Kinetic energy (MeV)")
+    plt.ylabel("Counts")
+    plt.xlim([true_bins[-1], true_bins[0]])
+    plt.ylim(bottom=0)
+    plt.legend()
+    plt.savefig("plot/Nend_energy_hist.pdf")
+    plt.clf()
+    # plot Nint_ex
+    plt.errorbar(meas_cKE, meas_Nint_ex, meas_Nint_ex_err, meas_wKE, "r.", label="Measured")
+    plt.errorbar(true_cKE, unfd_Nint_ex, unfd_Nint_ex_err, true_wKE, "b.", label="Unfolded")
+    plt.title(r"Interaction histogram $N_{\rm int_{ex}}$")
+    plt.xlabel("Kinetic energy (MeV)")
+    plt.ylabel("Counts")
+    plt.xlim([true_bins[-1], true_bins[0]])
+    plt.ylim(bottom=0)
+    plt.legend()
+    plt.savefig("plot/Nint_energy_hist.pdf")
+    plt.clf()
+    # plot Ninc
+    plt.errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, "r.", label="Measured")
+    plt.errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, "b.", label="Unfolded")
+    plt.title(r"Incident histogram $N_{\rm inc}$")
+    plt.xlabel("Kinetic energy (MeV)")
+    plt.ylabel("Counts")
+    plt.xlim([true_bins[-1], true_bins[0]])
+    plt.ylim(bottom=0)
+    plt.legend()
+    plt.savefig("plot/Ninc_energy_hist.pdf")
+    plt.clf()
 
 ### plot
 if beamPDG == 211:
