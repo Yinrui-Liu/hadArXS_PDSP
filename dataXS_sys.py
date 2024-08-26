@@ -12,12 +12,16 @@ MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.87, 1, 2.28, 1.89, 0.87, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.28, 0, 0.25, 0.23, 0.28, 0, 0]
-inc_sys_bkg = True
+inc_sys_bkg = False
 inc_sys_MCstat = False
 inc_sys_MCXS = False
 inc_sys_reweiP = False
 inc_sys_Eloss = False
 niter = 49 # 49 for pion data, 16 for proton data
+save_xs_for_sys = False
+sysmode = 'MCstat'
+use_external_cov = False
+
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -77,9 +81,9 @@ particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
 if inc_sys_Eloss:
     if beamPDG == 211:
-        rdm_Eloss_shift = np.random.normal(0, 4) # 4 MeV constant error for pion upstream E loss
+        rdm_Eloss_shift = np.random.normal(0, 2.0) # 2.0 MeV constant error for pion upstream E loss
     elif beamPDG == 2212:
-        rdm_Eloss_shift = np.random.normal(0, 2) # 2 MeV constant error for proton upstream E loss
+        rdm_Eloss_shift = np.random.normal(0, 0.6) # 0.6 MeV constant error for proton upstream E loss
     reco_initial_energy_mc = np.where(reco_initial_energy_mc>0, reco_initial_energy_mc - rdm_Eloss_shift, reco_initial_energy_mc)
     reco_end_energy_mc = np.where(reco_end_energy_mc>0, reco_end_energy_mc - rdm_Eloss_shift, reco_end_energy_mc)
 if inc_sys_reweiP:
@@ -200,40 +204,49 @@ unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unf
 unfd_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
 unfd_3N_Vcov = slicing.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
 unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
-print(f"Measured cross section \t{unfd_XS}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))}")
+systxtfile = f'syscovtxt/sys_{sysmode}_unfd_{beamPDG}.txt'
+if use_external_cov:
+    unfd_list = np.transpose(np.loadtxt(systxtfile))
+    unfd_XS_Vcov = np.cov(unfd_list)
+    np.savetxt(f'syscovtxt/sys_{sysmode}_Cov_{beamPDG}.txt', unfd_XS_Vcov)
+    print(f"Using external covariance matrix from {systxtfile}.")
+print(f"Energy bin edges \t{true_bins[::-1]}\nMeasured cross section \t{unfd_XS[::-1].tolist()}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))[::-1].tolist()}")
 
+if save_xs_for_sys:
+    with open(systxtfile, "ab") as f:
+        np.savetxt(f, [unfd_XS])
+else:
+    ### plot
+    if beamPDG == 211:
+        simcurvefile_name = "input_files/exclusive_xsec.root"
+        simcurve_name = "total_inel_KE"
+    elif beamPDG == 2212:
+        simcurvefile_name = "input_files/proton_cross_section.root"
+        simcurve_name = "inel_KE"
+    simcurvefile = uproot.open(simcurvefile_name)
+    simcurvegraph = simcurvefile[simcurve_name]
+    simcurve = simcurvegraph.values()
 
-### plot
-if beamPDG == 211:
-    simcurvefile_name = "input_files/exclusive_xsec.root"
-    simcurve_name = "total_inel_KE"
-elif beamPDG == 2212:
-    simcurvefile_name = "input_files/proton_cross_section.root"
-    simcurve_name = "inel_KE"
-simcurvefile = uproot.open(simcurvefile_name)
-simcurvegraph = simcurvefile[simcurve_name]
-simcurve = simcurvegraph.values()
+    plt.figure(figsize=[8,4.8])
+    XS_x = true_cKE[1:-1] # the underflow and overflow bin are not used
+    XS_y = unfd_XS[1:-1]
+    XS_xerr = true_wKE[1:-1]
+    XS_yerr = np.sqrt(np.diagonal(unfd_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
+    plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Signal XS using unfolded result")
+    #xx = np.linspace(0, 1100, 100)
+    #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
+    plt.plot(*simcurve, label="Signal cross section used in simulation")
+    plt.xlabel("Kinetic energy (MeV)")
+    plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
+    plt.xlim(([true_bins[-1], true_bins[0]]))
+    plt.ylim(bottom=0)
+    plt.show()
 
-plt.figure(figsize=[8,4.8])
-XS_x = true_cKE[1:-1] # the underflow and overflow bin are not used
-XS_y = unfd_XS[1:-1]
-XS_xerr = true_wKE[1:-1]
-XS_yerr = np.sqrt(np.diagonal(unfd_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
-plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Signal XS using unfolded result")
-#xx = np.linspace(0, 1100, 100)
-#plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
-plt.plot(*simcurve, label="Signal cross section used in simulation")
-plt.xlabel("Kinetic energy (MeV)")
-plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
-plt.xlim(([true_bins[-1], true_bins[0]]))
-plt.ylim(bottom=0)
-plt.show()
-
-plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(unfd_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
-plt.title(r"Correlation matrix for cross section")
-plt.xticks(true_bins[1:-1])
-plt.yticks(true_bins[1:-1])
-plt.xlabel(r"Kinetic energy (MeV)")
-plt.ylabel(r"Kinetic energy (MeV)")
-plt.colorbar()
-plt.show()
+    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(unfd_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1) # true_bins is defined as reversed but on this plot it is increasing order
+    plt.title(r"Correlation matrix for cross section")
+    plt.xticks(true_bins[1:-1])
+    plt.yticks(true_bins[1:-1])
+    plt.xlabel(r"Kinetic energy (MeV)")
+    plt.ylabel(r"Kinetic energy (MeV)")
+    plt.colorbar()
+    plt.show()
