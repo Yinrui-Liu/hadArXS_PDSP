@@ -19,8 +19,9 @@ inc_sys_reweiP = False
 inc_sys_Eloss = False
 niter = 49 # 49 for pion data, 16 for proton data
 save_xs_for_sys = False
-sysmode = 'MCstat'
+sysmode = 'Eloss'
 use_external_cov = False
+use_total_cov = False
 
 
 if beamPDG == 211:
@@ -210,6 +211,14 @@ if use_external_cov:
     unfd_XS_Vcov = np.cov(unfd_list)
     np.savetxt(f'syscovtxt/sys_{sysmode}_Cov_{beamPDG}.txt', unfd_XS_Vcov)
     print(f"Using external covariance matrix from {systxtfile}.")
+elif inc_sys_bkg:
+    np.savetxt(f'syscovtxt/sys_incbkg_Cov_{beamPDG}.txt', unfd_XS_Vcov)
+elif use_total_cov:
+    unfd_XS_Vcov_tot = np.loadtxt(f'syscovtxt/sys_incbkg_Cov_{beamPDG}.txt') # stat + sys:bkg
+    sysmode_list = ['MCstat', 'MCXS', 'reweiP', 'Eloss']
+    for sysmd in sysmode_list:
+        unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.loadtxt(f'syscovtxt/sys_{sysmd}_Cov_{beamPDG}.txt')
+    print("Use total covariance matrix")
 print(f"Energy bin edges \t{true_bins[::-1]}\nMeasured cross section \t{unfd_XS[::-1].tolist()}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))[::-1].tolist()}")
 
 if save_xs_for_sys:
@@ -232,21 +241,33 @@ else:
     XS_y = unfd_XS[1:-1]
     XS_xerr = true_wKE[1:-1]
     XS_yerr = np.sqrt(np.diagonal(unfd_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
-    plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Signal XS using unfolded result")
-    #xx = np.linspace(0, 1100, 100)
-    #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
-    plt.plot(*simcurve, label="Signal cross section used in simulation")
+    plt.plot(*simcurve, 'r', label="Cross-section model used in simulation")
     plt.xlabel("Kinetic energy (MeV)")
     plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
     plt.xlim(([true_bins[-1], true_bins[0]]))
-    plt.ylim(bottom=0)
+    if use_total_cov and not use_external_cov: # show total uncertainties
+        plt.errorbar(XS_x, XS_y, np.sqrt(np.diagonal(unfd_XS_Vcov_tot))[1:-1], XS_xerr, fmt="b.", capsize=2, label="Measured cross section (statistical+systematics)")
+        plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt="k.", capsize=2, label="Measured cross section (statistical-only)")
+        plt.ylim(bottom=0)
+        cov_for_plot = unfd_XS_Vcov_tot[1:-1, 1:-1]
+        handles, labels = plt.gca().get_legend_handles_labels()
+        order = [0,2,1]
+        plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
+        plt.savefig(f"plots/cross_section_{beamPDG}.pdf")
+    else:
+        plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt="k.", label="Measured cross section")
+        plt.ylim(bottom=0)
+        cov_for_plot = unfd_XS_Vcov[1:-1, 1:-1]
+        plt.legend()
     plt.show()
 
-    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(unfd_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1) # true_bins is defined as reversed but on this plot it is increasing order
+    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(cov_for_plot), cmap="RdBu_r", vmin=-1, vmax=1) # true_bins is defined as reversed but on this plot it is increasing order
     plt.title(r"Correlation matrix for cross section")
     plt.xticks(true_bins[1:-1])
     plt.yticks(true_bins[1:-1])
     plt.xlabel(r"Kinetic energy (MeV)")
     plt.ylabel(r"Kinetic energy (MeV)")
     plt.colorbar()
+    if use_total_cov and not use_external_cov:
+        plt.savefig(f"plots/XS_correlation_{beamPDG}.pdf")
     plt.show()
