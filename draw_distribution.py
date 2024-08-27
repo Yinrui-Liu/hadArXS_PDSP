@@ -2,43 +2,43 @@ from hadana.packages import *
 
 
 use_real_data = True
-beampdg = 2212
-binedges = np.linspace(0, 600, 100)
-xlabel = "reco_end_energy [MeV]"
+beampdg = 211
+binedges = np.linspace(0, 280, 100)
+xlabel = "Reconstructed track length [cm]"
 
 partypedict_pionp = {
     0: "Data", 
-    1: "PiInel", 
-    2: "PiDecay", 
+    1: "Pion inelastic", 
+    2: "Pion decay", 
     3: "Muon", 
     4: "misID:cosmic", 
-    5: "misID:p", 
-    6: "misID:pi", 
-    7: "misID:mu", 
+    5: "misID:proton", 
+    6: "misID:pion", 
+    7: "misID:muon", 
     8: "misID:e/γ", 
     9: "misID:other", 
 }
 partypedict_proton = {
     0: "Data", 
-    1: "PInel", 
-    2: "PElas", 
+    1: "Proton inelatic", 
+    2: "Stopping proton", 
     3: "misID:cosmic", 
-    4: "misID:p", 
-    5: "misID:pi", 
-    6: "misID:mu", 
+    4: "misID:proton", 
+    5: "misID:pion", 
+    6: "misID:muon", 
     7: "misID:e/γ", 
     8: "misID:other", 
 }
 parcolordict = {
-    "PiInel": "firebrick",
-    "PInel": "firebrick",
-    "PiDecay": "orange",
-    "PElas": "orange",
+    "Pion inelastic": "r",
+    "Proton inelatic": "r",
+    "Pion decay": "orange",
+    "Stopping proton": "orange",
     "Muon": "springgreen",
     "misID:cosmic": "deepskyblue",
-    "misID:p": "darkviolet",
-    "misID:pi": "hotpink",
-    "misID:mu": "green",
+    "misID:proton": "darkviolet",
+    "misID:pion": "hotpink",
+    "misID:muon": "green",
     "misID:e/γ": "yellow",
     "misID:other": "peru",
 }
@@ -77,25 +77,46 @@ reco_trklen_mc = processedVars_mc["reco_track_length"]
 reco_sigflag_mc = processedVars_mc["reco_sigflag"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 
-divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_trklen_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
 Nmc_sep = [sum(i) for i in divided_weights_mc[1:]]
 Nmc = sum(Nmc_sep)
 if use_real_data:
-    divided_vars_data, divided_weights_data = utils.divide_vars_by_partype(reco_end_energy_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
+    divided_vars_data, divided_weights_data = utils.divide_vars_by_partype(reco_trklen_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
     hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_data, divided_weights_data, binedges)
     Ndata = sum(divided_weights_data[0])
 else:
     hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_mc, divided_weights_mc, binedges)
     Ndata = sum(divided_weights_mc[0])
+hists_data = hists_data[0]
+hists_err_data = hists_err_data[0]
+hists_mc, hists_err_mc_sep, _ = utils.get_vars_hists(divided_vars_mc[1:], divided_weights_mc[1:], binedges)
+hists_err_mc = np.zeros_like(hists_err_mc_sep[0])
+for err in hists_err_mc_sep:
+    hists_err_mc += (err*err)
+hists_err_mc = np.sqrt(hists_err_mc)
 
 print(f"Ndata = {Ndata:.1f}, Nmc = {Nmc:.1f}")
-plt.errorbar((binedges[:-1]+binedges[1:])/2, hists_data[0], yerr=hists_err_data[0], fmt='o', color='k', markersize=1, label=f"Data {Ndata:.0f}")
+ax1 = plt.axes([0.11, 0.24, 0.87, 0.74])
+ax2 = plt.axes([0.11, 0.09, 0.87, 0.12])
+bincenters = (binedges[:-1]+binedges[1:])/2
+ax1.errorbar(bincenters, hists_data, yerr=hists_err_data, fmt='o', color='k', markersize=1, label=f"Data {Ndata:.0f}")
 MC_data_scale = Ndata / Nmc
-plt.hist(divided_vars_mc[1:], binedges, weights=[i*MC_data_scale for i in divided_weights_mc[1:]], label=[f'{pardict[i+1]} {MC_data_scale*Nmc_sep[i]:.0f}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True)
+binmc, _, _ = ax1.hist(divided_vars_mc[1:], binedges, weights=[i*MC_data_scale for i in divided_weights_mc[1:]], label=[f'{pardict[i+1]} {MC_data_scale*Nmc_sep[i]:.0f}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True) # binmc is cumulative hists_mc
 
-plt.xlim([binedges[0], binedges[-1]])
-plt.xlabel(xlabel)
-plt.ylabel("Weighted counts")
-plt.legend()
-#plt.savefig("plots/test_plot.pdf")
+ratio_err = hists_data/binmc[-1] * np.sqrt(np.power(hists_err_mc/binmc[-1], 2) + np.power(hists_err_data/hists_data, 2)) # error of the ratio
+ax2.errorbar(bincenters, hists_data/binmc[-1], yerr=ratio_err, fmt='o', color='k', markersize=1)
+ax2.plot(binedges, np.ones_like(binedges), 'r:')
+
+ax1.set_xticks(np.arange(binedges[0], binedges[-1], 10), minor=True)
+ax1.set_xticklabels([])
+ax1.set_xlim([binedges[0], binedges[-1]])
+ax1.set_ylabel("Weighted counts")
+ax1.legend()
+ax2.set_xticks(np.arange(binedges[0], binedges[-1], 10), minor=True)
+ax2.set_xlim([binedges[0], binedges[-1]])
+ax2.set_xlabel(xlabel)
+ax2.set_yticks([0,1,2])
+ax2.set_ylim([0, 2])
+ax2.set_ylabel("Data/MC")
+plt.savefig(f"plots/reco_trklen_{beampdg}.pdf")
 plt.show()
