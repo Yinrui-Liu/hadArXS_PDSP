@@ -4,7 +4,7 @@ from hadana.BetheBloch import BetheBloch
 
 
 beamPDG = 211
-with open('processed_files/procVars_pMC.pkl', 'rb') as procfile:
+with open('processed_files/procVars_piMC.pkl', 'rb') as procfile:
     processedVars = pickle.load(procfile)
 if beamPDG == 211:
     true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])

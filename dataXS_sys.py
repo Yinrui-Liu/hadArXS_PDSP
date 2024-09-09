@@ -10,14 +10,14 @@ beamPDG = 211
 datafilename = "processed_files/procVars_pidata.pkl"
 MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
-bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.87, 1, 2.28, 1.89, 0.87, 1, 1]
-bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.28, 0, 0.25, 0.23, 0.28, 0, 0]
+bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
+bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.13, 0.11, 0.12, 0, 0]  proton [0, 0, 0, 0, 0, 0, 0]
 inc_sys_bkg = False
 inc_sys_MCstat = False
 inc_sys_MCXS = False
 inc_sys_reweiP = False
 inc_sys_Eloss = False
-niter = 49 # 49 for pion data, 16 for proton data
+niter = 47 # 47 for pion data, 16 for proton data
 save_xs_for_sys = False
 sysmode = 'Eloss'
 use_external_cov = False

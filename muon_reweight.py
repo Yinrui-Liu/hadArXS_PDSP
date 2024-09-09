@@ -82,7 +82,7 @@ else:
 if os.path.exists(outfilename_data):
     with open(outfilename_data, 'rb') as procfile_data:
         processedVars_data = pickle.load(procfile_data)
-    print(f"Using existing file {outfilename_MC}")
+    print(f"Using existing file {outfilename_data}")
 else:
     PDSP_ntuple_data = uproot.open(f"input_files/{PDSP_ntuple_name_data}.root")
     pduneana_data = PDSP_ntuple_data["pduneana/beamana"]
@@ -119,7 +119,7 @@ x_data = processedVars_data["reco_track_length"][:Nevents][mask_data]
 bins = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 500]
 
 ### get muon reweight
-wmu_list = np.linspace(1.5, 1.65, 100)
+wmu_list = np.linspace(1.55, 1.7, 100)
 chi2_list = []
 for wmu in wmu_list:
     weight_mu = np.where(par_type_MC==3, wmu, 1)

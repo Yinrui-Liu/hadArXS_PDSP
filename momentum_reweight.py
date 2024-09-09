@@ -103,7 +103,7 @@ else:
 if os.path.exists(outfilename_data):
     with open(outfilename_data, 'rb') as procfile_data:
         processedVars_data = pickle.load(procfile_data)
-    print(f"Using existing file {outfilename_MC}")
+    print(f"Using existing file {outfilename_data}")
 else:
     PDSP_ntuple_data = uproot.open(f"input_files/{PDSP_ntuple_name_data}.root")
     pduneana_data = PDSP_ntuple_data["pduneana/beamana"]
