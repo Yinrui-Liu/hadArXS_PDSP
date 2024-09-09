@@ -13,7 +13,7 @@ resfilename = "processed_files/response_pi.pkl"
 # types of systematic uncertainties to include
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.87, 1, 2.28, 1.89, 0.87, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.28, 0, 0.25, 0.23, 0.28, 0, 0]
-inc_sys_bkg = True
+inc_sys_bkg = False
 plot_energy_hists = False
 niter = 20
 
@@ -110,6 +110,7 @@ true_3D1D_map = responseVars["true_3D1D_map"]
 true_N3D = responseVars["true_N3D"]
 true_N3D_Vcov = responseVars["true_N3D_Vcov"]
 meas_N3D = responseVars["meas_N3D"]
+meas_N3D_Vcov = responseVars["meas_N3D_Vcov"]
 
 sig_meas_N1D, sig_meas_N1D_err = multiD.map_data_to_MC_bins(sig_meas_N3D, sig_meas_N3D_err, meas_3D1D_map)
 sig_meas_V1D = np.diag(sig_meas_N1D_err*sig_meas_N1D_err)
@@ -129,6 +130,8 @@ unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, u
 print(f"Measured cross section \t{unfd_XS}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))}")
 
 if plot_energy_hists:
+    from matplotlib.patches import Patch
+
     unfd_Nini_err = np.sqrt(np.diagonal(unfd_3SID_Vcov)[1:Ntruebins])
     unfd_Ninc_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[:Ntruebins-1])
     unfd_Nend_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[Ntruebins-1:2*(Ntruebins-1)])
@@ -143,50 +146,124 @@ if plot_energy_hists:
     meas_Nend_err = np.sqrt(np.diagonal(meas_3N_Vcov)[Nmeasbins-1:2*(Nmeasbins-1)])
     meas_Nint_ex_err = np.sqrt(np.diagonal(meas_3N_Vcov)[2*(Nmeasbins-1):])
 
+    mctrue_Nini, mctrue_Nend, mctrue_Nint_ex, mctrue_Ninc = multiD.get_unfold_histograms(true_N3D, Ntruebins)
+    mctrue_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
+    mctrue_3N_Vcov = slicing.get_Cov_3N_from_3SID(mctrue_3SID_Vcov, Ntruebins)
+    mctrue_XS, mctrue_XS_Vcov = slicing.calculate_XS_Cov_from_3N(mctrue_Ninc, mctrue_Nend, mctrue_Nint_ex, mctrue_3N_Vcov, true_bins, bb)
+    mctrue_Nini_err = np.sqrt(np.diagonal(mctrue_3SID_Vcov)[1:Ntruebins])
+    mctrue_Ninc_err = np.sqrt(np.diagonal(mctrue_3N_Vcov)[:Ntruebins-1])
+    mctrue_Nend_err = np.sqrt(np.diagonal(mctrue_3N_Vcov)[Ntruebins-1:2*(Ntruebins-1)])
+    mctrue_Nint_ex_err = np.sqrt(np.diagonal(mctrue_3N_Vcov)[2*(Ntruebins-1):])
+
+    mcmeas_Nini, mcmeas_Nend, mcmeas_Nint_ex, mcmeas_Ninc = multiD.get_unfold_histograms(meas_N3D, Nmeasbins)
+    mcmeas_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(meas_N3D_Vcov, Nmeasbins)
+    mcmeas_3N_Vcov = slicing.get_Cov_3N_from_3SID(mcmeas_3SID_Vcov, Nmeasbins)
+    mcmeas_XS, mcmeas_XS_Vcov = slicing.calculate_XS_Cov_from_3N(mcmeas_Ninc, mcmeas_Nend, mcmeas_Nint_ex, mcmeas_3N_Vcov, meas_bins, bb)
+    mcmeas_Nini_err = np.sqrt(np.diagonal(mcmeas_3SID_Vcov)[1:Nmeasbins])
+    mcmeas_Ninc_err = np.sqrt(np.diagonal(mcmeas_3N_Vcov)[:Nmeasbins-1])
+    mcmeas_Nend_err = np.sqrt(np.diagonal(mcmeas_3N_Vcov)[Nmeasbins-1:2*(Nmeasbins-1)])
+    mcmeas_Nint_ex_err = np.sqrt(np.diagonal(mcmeas_3N_Vcov)[2*(Nmeasbins-1):])
+
+    fig, axs = plt.subplots(2, 2, figsize=[10, 8])
+    plt.subplots_adjust(left=0.08, right=0.98, top=0.96, bottom=0.06, hspace=0.2, wspace=0.2)
     # plot Nini
-    plt.errorbar(meas_cKE, meas_Nini, meas_Nini_err, meas_wKE, "r.", label="Measured")
-    plt.errorbar(true_cKE, unfd_Nini, unfd_Nini_err, true_wKE, "b.", label="Unfolded")
-    plt.title(r"Initial histogram $N_{\rm ini}$")
-    plt.xlabel("Kinetic energy (MeV)")
-    plt.ylabel("Counts")
-    plt.xlim([true_bins[-1], true_bins[0]])
-    plt.ylim(bottom=0)
-    plt.legend()
-    plt.savefig("plot/Nini_energy_hist.pdf")
-    plt.clf()
+    axs[0, 0].errorbar(meas_cKE, meas_Nini, meas_Nini_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[0, 0].errorbar(true_cKE, unfd_Nini, unfd_Nini_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Nini*sig_MC_scale
+    line_t, = axs[0, 0].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[0, 0].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Nini_err, 2), np.repeat(histy_center+mctrue_Nini_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Nini*sig_MC_scale
+    line_m, = axs[0, 0].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[0, 0].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Nini_err, 2), np.repeat(histy_center+mcmeas_Nini_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[0, 0].set_title(r"Initial histogram $N_{\rm ini}$")
+    axs[0, 0].set_xlabel("Kinetic energy (MeV)")
+    axs[0, 0].set_ylabel("Counts")
+    axs[0, 0].set_xlim([true_bins[-1], true_bins[0]])
+    axs[0, 0].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[0, 0].legend(handles, labels)
+
     # plot Nend
-    plt.errorbar(meas_cKE, meas_Nend, meas_Nend_err, meas_wKE, "r.", label="Measured")
-    plt.errorbar(true_cKE, unfd_Nend, unfd_Nend_err, true_wKE, "b.", label="Unfolded")
-    plt.title(r"End histogram $N_{\rm end}$")
-    plt.xlabel("Kinetic energy (MeV)")
-    plt.ylabel("Counts")
-    plt.xlim([true_bins[-1], true_bins[0]])
-    plt.ylim(bottom=0)
-    plt.legend()
-    plt.savefig("plot/Nend_energy_hist.pdf")
-    plt.clf()
+    axs[0, 1].errorbar(meas_cKE, meas_Nend, meas_Nend_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[0, 1].errorbar(true_cKE, unfd_Nend, unfd_Nend_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Nend*sig_MC_scale
+    line_t, = axs[0, 1].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[0, 1].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Nend_err, 2), np.repeat(histy_center+mctrue_Nend_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Nend*sig_MC_scale
+    line_m, = axs[0, 1].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[0, 1].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Nend_err, 2), np.repeat(histy_center+mcmeas_Nend_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[0, 1].set_title(r"End histogram $N_{\rm end}$")
+    axs[0, 1].set_xlabel("Kinetic energy (MeV)")
+    axs[0, 1].set_ylabel("Counts")
+    axs[0, 1].set_xlim([true_bins[-1], true_bins[0]])
+    axs[0, 1].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[0, 1].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[0, 1].legend(handles, labels)
+
     # plot Nint_ex
-    plt.errorbar(meas_cKE, meas_Nint_ex, meas_Nint_ex_err, meas_wKE, "r.", label="Measured")
-    plt.errorbar(true_cKE, unfd_Nint_ex, unfd_Nint_ex_err, true_wKE, "b.", label="Unfolded")
-    plt.title(r"Interaction histogram $N_{\rm int_{ex}}$")
-    plt.xlabel("Kinetic energy (MeV)")
-    plt.ylabel("Counts")
-    plt.xlim([true_bins[-1], true_bins[0]])
-    plt.ylim(bottom=0)
-    plt.legend()
-    plt.savefig("plot/Nint_energy_hist.pdf")
-    plt.clf()
+    axs[1, 0].errorbar(meas_cKE, meas_Nint_ex, meas_Nint_ex_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[1, 0].errorbar(true_cKE, unfd_Nint_ex, unfd_Nint_ex_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Nint_ex*sig_MC_scale
+    line_t, = axs[1, 0].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[1, 0].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Nint_ex_err, 2), np.repeat(histy_center+mctrue_Nint_ex_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Nint_ex*sig_MC_scale
+    line_m, = axs[1, 0].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[1, 0].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Nint_ex_err, 2), np.repeat(histy_center+mcmeas_Nint_ex_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[1, 0].set_title(r"Interaction histogram $N_{\rm int_{ex}}$")
+    axs[1, 0].set_xlabel("Kinetic energy (MeV)")
+    axs[1, 0].set_ylabel("Counts")
+    axs[1, 0].set_xlim([true_bins[-1], true_bins[0]])
+    axs[1, 0].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[1, 0].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[1, 0].legend(handles, labels)
+
     # plot Ninc
-    plt.errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, "r.", label="Measured")
-    plt.errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, "b.", label="Unfolded")
-    plt.title(r"Incident histogram $N_{\rm inc}$")
-    plt.xlabel("Kinetic energy (MeV)")
-    plt.ylabel("Counts")
-    plt.xlim([true_bins[-1], true_bins[0]])
-    plt.ylim(bottom=0)
-    plt.legend()
-    plt.savefig("plot/Ninc_energy_hist.pdf")
-    plt.clf()
+    axs[1, 1].errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[1, 1].errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Ninc*sig_MC_scale
+    line_t, = axs[1, 1].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[1, 1].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Ninc_err, 2), np.repeat(histy_center+mctrue_Ninc_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Ninc*sig_MC_scale
+    line_m, = axs[1, 1].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[1, 1].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Ninc_err, 2), np.repeat(histy_center+mcmeas_Ninc_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[1, 1].set_title(r"Incident histogram $N_{\rm inc}$")
+    axs[1, 1].set_xlabel("Kinetic energy (MeV)")
+    axs[1, 1].set_ylabel("Counts")
+    axs[1, 1].set_xlim([true_bins[-1], true_bins[0]])
+    axs[1, 1].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[1, 1].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[1, 1].legend(handles, labels)
+
+    plt.savefig(f'plots/energy_hists_{beamPDG}.pdf')
+    plt.show()
 
 ### plot
 if beamPDG == 211:
