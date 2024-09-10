@@ -10,7 +10,6 @@ beamPDG = 211
 Nevents = None
 
 
-PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")
 if "MC" in PDSP_ntuple_name:
     isMC = True
     outfilename = f"processed_files/procVars_getBQpars{beamPDG}_MC.pkl"
