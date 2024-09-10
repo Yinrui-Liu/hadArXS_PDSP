@@ -1,5 +1,5 @@
 from hadana.packages import *
-#import ROOT
+import ROOT
 import hadana.slicing_method as slicing
 import hadana.multiD_mapping as multiD
 import hadana.parameters as parameters
@@ -79,30 +79,30 @@ eff1D, true_SID3D_sel = multiD.get_efficiency(true_N3D, true_N1D, true_SID3D, Nt
 response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[meas_SID3D], true_3D1D_map[true_SID3D_sel], reco_weight)
 #print(eff1D, response_matrix, sep='\n')
 
+true_N3D_sel_noweight, _ = np.histogram(true_SID3D_sel, bins=np.arange(Ntruebins_3D+1))
+eff1D_noweight = utils.safe_divide(true_N3D_sel_noweight[true_N3D>0], true_N1D)
 eff1D_upperr = []
 eff1D_lowerr = []
-for ii in range(len(eff1D)):
-    # disable error calculation since ClopperPearson does not include weights
-    eff1D_upperr.append(0)#ROOT.TEfficiency.ClopperPearson(true_N1D[ii], true_N3D_sel[true_N3D>0][ii], 0.6826894921, True) - eff1D[ii])
-    eff1D_lowerr.append(0)#eff1D[ii] - ROOT.TEfficiency.ClopperPearson(true_N1D[ii], true_N3D_sel[true_N3D>0][ii], 0.6826894921, False))
+for ii in range(len(eff1D)): # Note the error calculation by ClopperPearson ignores weights, so this is a rough estimates. In the end , we rely on toys to esimate the uncertainty on efficiency
+    eff1D_upperr.append(ROOT.TEfficiency.ClopperPearson(true_N1D[ii], true_N3D_sel_noweight[true_N3D>0][ii], 0.6826894921, True) - eff1D_noweight[ii])
+    eff1D_lowerr.append(eff1D_noweight[ii] - ROOT.TEfficiency.ClopperPearson(true_N1D[ii], true_N3D_sel_noweight[true_N3D>0][ii], 0.6826894921, False))
 plt.figure(figsize=[8.6,4.8])
 plt.errorbar(np.arange(0, Ntruebins_1D), eff1D, yerr=[eff1D_lowerr, eff1D_upperr], fmt="r.", ecolor="g", elinewidth=1, label="Efficiency")
 plt.xlabel(r"${\rm ID_{rem}}$")
 plt.ylabel("Efficiency")
 plt.title(r"Efficiency for true ${\rm ID_{rem}}$")
-plt.ylim([0,1])
+plt.xlim([-1, Ntruebins_1D])
+plt.ylim([0, 1])
 plt.legend()
-#plt.savefig("plots/efficiency_plot.pdf")
+plt.savefig(f"plots/efficiency_plot_{beamPDG}.pdf")
 plt.show()
 
 plt.imshow(np.ma.masked_where(response_matrix == 0, response_matrix), origin="lower")
 plt.title(r"Response matrix for ${\rm ID_{rem}}$")
 plt.xlabel(r"Measured ${\rm ID_{rem}}$")
 plt.ylabel(r"True ${\rm ID_{rem}}$")
-#plt.xlim([-10,Nmeasbins_1D+10])
-#plt.ylim([-10,Ntruebins_1D+10])
 plt.colorbar(label="Counts")
-#plt.savefig("plots/response_matrix.pdf")
+plt.savefig(f"plots/response_matrix_{beamPDG}.pdf")
 plt.show()
 
 with open(respfilename, 'wb') as respfile: # save the response modeled by MC
