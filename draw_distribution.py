@@ -4,7 +4,7 @@ from hadana.packages import *
 use_real_data = True
 beampdg = 211
 binedges = np.linspace(0, 280, 100)
-xlabel = "Reconstructed track length [cm]"
+xlabel = "Reconstructed track length [cm]" ### also edit below the variable to plot
 
 partypedict_pionp = {
     0: "Data", 
@@ -42,6 +42,51 @@ parcolordict = {
     "misID:e/γ": "yellow",
     "misID:other": "peru",
 }
+variables_to_load = [
+    "event",
+    "reco_beam_calo_wire",
+    "reco_beam_type",
+    "reco_beam_vertex_nHits",
+    "reco_beam_vertex_michel_score_weight_by_charge",
+    "reco_beam_Chi2_proton",
+    "reco_beam_Chi2_ndof",
+    "MC",
+    "beam_inst_X",
+    "beam_inst_Y",
+    "reco_beam_calo_startX",
+    "reco_beam_calo_startY",
+    "reco_beam_calo_startZ",
+    "reco_beam_calo_endX",
+    "reco_beam_calo_endY",
+    "reco_beam_calo_endZ",
+    "reco_beam_calo_X",
+    "reco_beam_calo_Y",
+    "reco_beam_calo_Z",
+    "true_beam_traj_X",
+    "true_beam_traj_Y",
+    "true_beam_traj_Z",
+    "reco_reconstructable_beam_event",
+    "true_beam_PDG",
+    "beam_inst_trigger",
+    "beam_inst_nMomenta",
+    "beam_inst_nTracks",
+    "beam_inst_PDG_candidates",
+    "beam_inst_P",
+    "reco_beam_calibrated_dEdX_SCE",
+    "reco_beam_resRange_SCE",
+    "true_beam_traj_KE",
+    "reco_beam_true_byE_matched",
+    "reco_beam_true_byE_origin",
+    "reco_beam_true_byE_PDG",
+    "true_beam_endProcess",
+    "g4rw_full_grid_piplus_coeffs",
+    "g4rw_full_grid_proton_coeffs",
+    "true_beam_startP",
+]
+PDSP_ntuple = uproot.open(f"input_files/pduneana_MC_20g4rw.root")
+pduneana_mc = PDSP_ntuple["pduneana/beamana"]
+PDSP_ntuple = uproot.open(f"input_files/PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04.root")
+pduneana_data = PDSP_ntuple["pduneana/beamana"]
 
 if beampdg == 211:
     infile = "pi"
@@ -53,35 +98,30 @@ elif beampdg == 2212:
 if use_real_data:
     with open(f'processed_files/procVars_{infile}data.pkl', 'rb') as datafile:
         processedVars_data = pickle.load(datafile)
-    reco_initial_energy_data = processedVars_data["reco_initial_energy"]
-    reco_end_energy_data = processedVars_data["reco_end_energy"]
     mask_SelectedPart_data = processedVars_data["mask_SelectedPart"]
     mask_FullSelection_data = processedVars_data["mask_FullSelection"]
     combined_mask_data = mask_SelectedPart_data & mask_FullSelection_data
     particle_type_data = processedVars_data["particle_type"]
     reweight_data = processedVars_data["reweight"]
-    reco_trklen_data = processedVars_data["reco_track_length"]
-    reco_sigflag_data = processedVars_data["reco_sigflag"]
-    reco_containing_data = processedVars_data["reco_containing"]
 
 with open(f'processed_files/procVars_{infile}MC.pkl', 'rb') as mcfile:
     processedVars_mc = pickle.load(mcfile)
-reco_initial_energy_mc = processedVars_mc["reco_initial_energy"]
-reco_end_energy_mc = processedVars_mc["reco_end_energy"]
 mask_SelectedPart_mc = processedVars_mc["mask_SelectedPart"]
 mask_FullSelection_mc = processedVars_mc["mask_FullSelection"]
 combined_mask_mc = mask_SelectedPart_mc & mask_FullSelection_mc
 particle_type_mc = processedVars_mc["particle_type"]
 reweight_mc = processedVars_mc["reweight"]
-reco_trklen_mc = processedVars_mc["reco_track_length"]
-reco_sigflag_mc = processedVars_mc["reco_sigflag"]
-reco_containing_mc = processedVars_mc["reco_containing"]
 
-divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_trklen_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
+### edit here the variable to plot
+varhist_mc = processedVars_mc["reco_track_length"] # e.g. processedVars_mc["reco_track_length"], np.array(pduneana_mc["beam_inst_P"])
+varhist_data = processedVars_data["reco_track_length"] # e.g. processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"])
+
+# draw the data points and stacked MC histograms by event type in the comparison plot
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(varhist_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
 Nmc_sep = [sum(i) for i in divided_weights_mc[1:]]
 Nmc = sum(Nmc_sep)
 if use_real_data:
-    divided_vars_data, divided_weights_data = utils.divide_vars_by_partype(reco_trklen_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
+    divided_vars_data, divided_weights_data = utils.divide_vars_by_partype(varhist_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
     hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_data, divided_weights_data, binedges)
     Ndata = sum(divided_weights_data[0])
 else:
@@ -118,5 +158,5 @@ ax2.set_xlabel(xlabel)
 ax2.set_yticks([0,1,2])
 ax2.set_ylim([0, 2])
 ax2.set_ylabel("Data/MC")
-plt.savefig(f"plots/reco_trklen_{beampdg}.pdf")
+#plt.savefig(f"plots/reco_trklen_{beampdg}.pdf")
 plt.show()
