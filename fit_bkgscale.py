@@ -146,6 +146,29 @@ weights_MC = processedVars_MC["reweight"]
 mask_SelectedPart_data = processedVars_data["mask_SelectedPart"]
 weights_data = processedVars_data["reweight"]
 
+pardict = {
+    0: "Data", 
+    1: "Pion inelastic", 
+    2: "Pion decay", 
+    3: "Muon", 
+    4: "misID:cosmic", 
+    5: "misID:proton", 
+    6: "misID:pion", 
+    7: "misID:muon", 
+    8: "misID:e/γ", 
+    9: "misID:other", 
+}
+parcolordict = {
+    "Pion inelastic": "firebrick",
+    "Pion decay": "orange",
+    "Muon": "springgreen",
+    "misID:cosmic": "deepskyblue",
+    "misID:proton": "darkviolet",
+    "misID:pion": "hotpink",
+    "misID:muon": "green",
+    "misID:e/γ": "yellow",
+    "misID:other": "peru",
+}
 ### use Michel score distribution for muon bkg fit
 mask_Selection_bkgfit_mu = processedVars_MC["mask_Selection_bkgfit_mu"]
 mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_mu)[:Nevents]
@@ -185,13 +208,17 @@ bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
 bin_widths = np.diff(bins)
 plt.figure(figsize=(10, 6))
 plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_mu)/sum(weights_MC_mu), [0]]), where='post', label='Original MC', color='gold')
+plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_mu)/sum(weights_MC_mu), [0]]), where='post', label='Original MC (total)', color='gold')
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_mu)
+divided_weights_mc = [np.array(i)*sum(weights_data_mu)/sum(weights_MC_mu) for i in divided_weights_mc]
+plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
 plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_mu)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (muon weight = {sf_mu:.3f}±{sferr_mu:.3f})', color='r', linestyle='--')
 plt.xlabel('Daughter Michel score')
 plt.ylabel('Counts (all normalized to data)')
 plt.legend()
 plt.ylim([0.1, None])
 plt.yscale('log')
+plt.savefig("plots/bkgfit_mu.pdf")
 plt.show()
 
 ### use proton chi2 distribution for proton bkg fit
@@ -233,13 +260,17 @@ bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
 bin_widths = np.diff(bins)
 plt.figure(figsize=(10, 6))
 plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_p)/sum(weights_MC_p), [0]]), where='post', label='Original MC', color='gold')
+plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_p)/sum(weights_MC_p), [0]]), where='post', label='Original MC (total)', color='gold')
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_p)
+divided_weights_mc = [np.array(i)*sum(weights_data_p)/sum(weights_MC_p) for i in divided_weights_mc]
+plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
 plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_p)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (proton weight = {sf_p:.3f}±{sferr_p:.3f})', color='r', linestyle='--')
 plt.xlabel(r'Proton dE/dx $\chi^2$')
 plt.ylabel('Counts (all normalized to data)')
 plt.legend()
 plt.ylim([0.1, None])
 plt.yscale('log')
+plt.savefig("plots/bkgfit_p.pdf")
 plt.show()
 
 ### use beam angle costheta for secondary pion bkg fit
@@ -256,6 +287,7 @@ x_data = processedVars_data["costheta_bkgfit_spi"][:Nevents][mask_data]
 
 bins = np.linspace(0.85, 1, 51)
 fit_range = [0.9, 0.95]
+weights_MC_spi = weights_MC_spi*np.where(par_type_MC==5, sf_p, 1)
 def sideband_fit_spi(scale_factor):
     weight_bkg = np.where(par_type_MC==6, scale_factor, 1)
     weights_MC_rew = weights_MC_spi*weight_bkg
@@ -281,40 +313,15 @@ bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
 bin_widths = np.diff(bins)
 plt.figure(figsize=(10, 6))
 plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_spi)/sum(weights_MC_spi), [0]]), where='post', label='Original MC', color='gold')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_spi)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary pion weight = {sf_spi:.3f}±{sferr_spi:.3f})', color='r', linestyle='--')
-
-pardict = {
-    0: "Data", 
-    1: "PiInel", 
-    2: "PiDecay", 
-    3: "Muon", 
-    4: "misID:cosmic", 
-    5: "misID:p", 
-    6: "misID:pi", 
-    7: "misID:mu", 
-    8: "misID:e/γ", 
-    9: "misID:other", 
-}
-parcolordict = {
-    "PiInel": "firebrick",
-    "PInel": "firebrick",
-    "PiDecay": "orange",
-    "PElas": "orange",
-    "Muon": "springgreen",
-    "misID:cosmic": "deepskyblue",
-    "misID:p": "darkviolet",
-    "misID:pi": "hotpink",
-    "misID:mu": "green",
-    "misID:e/γ": "yellow",
-    "misID:other": "peru",
-}
-divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_rew)
+plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_spi)/sum(weights_MC_spi), [0]]), where='post', label='Original MC (total)', color='gold')
+divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_spi)
+divided_weights_mc = [np.array(i)*sum(weights_data_spi)/sum(weights_MC_spi) for i in divided_weights_mc]
 plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
-
+plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_spi)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary pion weight = {sf_spi:.3f}±{sferr_spi:.3f})', color='r', linestyle='--')
 plt.xlabel(r'Beam angle $\cos\theta$')
 plt.ylabel('Counts (all normalized to data)')
 plt.legend()
 plt.ylim([0.1, None])
 plt.yscale('log')
+plt.savefig("plots/bkgfit_spi.pdf")
 plt.show()
