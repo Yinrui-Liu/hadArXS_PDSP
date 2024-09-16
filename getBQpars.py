@@ -135,12 +135,12 @@ plt.xlabel("reco_beam_calo_startZ [cm]")
 plt.show()
 
 ### inst x
-x_data = np.array(pduneana["beam_inst_X"])[:Nevents][mask]
-m = utils.fit_gaus_hist(x_data, weights, x_range=[-40, -20], initial_guesses=[-30, 5])
+inst_x = np.array(pduneana["beam_inst_X"])[:Nevents][mask]
+m = utils.fit_gaus_hist(inst_x, weights, x_range=[-40, -20], initial_guesses=[-30, 5])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [-80, 20]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
+plt.hist(inst_x, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
@@ -149,18 +149,22 @@ plt.xlabel("beam_inst_X [cm]")
 plt.show()
 
 ### inst y
-x_data = np.array(pduneana["beam_inst_Y"])[:Nevents][mask]
-m = utils.fit_gaus_hist(x_data, weights, x_range=[412, 432], initial_guesses=[422, 5])
+inst_y = np.array(pduneana["beam_inst_Y"])[:Nevents][mask]
+m = utils.fit_gaus_hist(inst_y, weights, x_range=[412, 432], initial_guesses=[422, 5])
 print(f"Fitted parameters: mu={m.values['mu']:.2f}±{m.errors['mu']:.2f}, sigma={m.values['sigma']:.2f}±{m.errors['sigma']:.2f}")
 # Plot the data and the fitted function
 xrange_draw = [370, 470]
-plt.hist(x_data, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
+plt.hist(inst_y, bins=100, range=xrange_draw, density=True, weights=weights, alpha=0.6, color='g', label='Data')
 x_fit = np.linspace(*xrange_draw, 1000)
 y_fit = utils.gaussian(x_fit, m.values['mu'], m.values['sigma'])
 plt.plot(x_fit, y_fit, color='red', label='Fitted Gaussian')
 plt.legend()
 plt.xlabel("beam_inst_Y [cm]")
 plt.show()
+
+### inst xy
+#plt.scatter(inst_x, inst_y)
+#plt.show()
 
 ### angle variables
 reco_beam_calo_startX = np.array(pduneana["reco_beam_calo_startX"])[:Nevents]

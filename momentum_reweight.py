@@ -166,6 +166,7 @@ if draw_tratio: # draw tratio distribution
     plt.ylim([0, None])
     plt.xlabel("reco_track_length / reco_range_from_KE")
     plt.legend()
+    plt.savefig(f"plots/momrew_tratio{beamPDG}.pdf")
     plt.show()
 if beamPDG == 211:
     mask_MC = np.array(mask_MC, dtype=bool) & (tratio_MC > 0.9)[:Nevents] # For muons, we select tratio > 0.9 based on the tratio plots. For proton, it is not necessary, since there is not a second peak caused by the broken tracks at the gap of the two TPCs
@@ -220,6 +221,7 @@ sigma0 = m3.values["sigma"]; sigma0_err = m3.errors["sigma"]
 print(f"true_beam_P_MC fitted (mu, sigma, n) = ({mu0:.4f}±{mu0_err:.4f}, {sigma0:.4f}±{sigma0_err:.4f}, {m3.values['n']:.1f}±{m3.errors['n']:.1f})")
 plt.xlabel("Momentum [MeV]")
 plt.legend()
+plt.savefig(f"plots/momrew_Phists{beamPDG}.pdf")
 plt.show()
 
 
@@ -315,32 +317,36 @@ plt.scatter(mm[tuple(np.transpose(onesigmaidx))], ss[tuple(np.transpose(onesigma
 plt.legend(fontsize=12, loc="upper left")
 plt.xlim([mu_list[0], mu_list[-1]])
 plt.ylim([sigma_list[0], sigma_list[-1]])
+plt.savefig(f"plots/momrew_2Dgrid{beamPDG}.pdf")
 plt.show()
 
 
 ### plot the distributions after reweighting
 print("\nShowing distributions after reweighting...")
 chi2, neweight = getChi2(mu_fit, sigma_fit)
-am,bm,_ = plt.hist(reco_KE_from_trklen_MC, density=True, bins=xbins, histtype="step", label="MC original", weights=mcweight)
-aa,bb,_ = plt.hist(reco_KE_from_trklen_data, density=True, bins=xbins, alpha=0.2, label="data")
-aw,bw,_ = plt.hist(reco_KE_from_trklen_MC, density=True, bins=xbins, histtype="step", label="MC reweighted", weights=neweight,color="r")
+am,bm,_ = plt.hist(reco_KE_from_trklen_MC, density=False, bins=xbins, histtype="step", label="MC original", weights=mcweight)
+aa,bb,_ = plt.hist(reco_KE_from_trklen_data, density=False, bins=xbins, alpha=0.2, label="data")
+aw,bw,_ = plt.hist(reco_KE_from_trklen_MC, density=False, bins=xbins, histtype="step", label="MC reweighted", weights=neweight,color="r")
 plt.legend()
 plt.xlabel("Recontructed KE from track length [MeV]")
+plt.savefig(f"plots/momrew_Eff{beamPDG}.pdf")
 plt.show()
 
-amp,bmp,_ = plt.hist(beam_inst_P_MC, bins=bins_p, histtype="step", label="MC original", weights=mcweight, density=True)
-aap,bbp,_ = plt.hist(beam_inst_P_data, bins=bins_p, alpha=0.2, label="data", density=True)
-awp,bwp,_ = plt.hist(beam_inst_P_MC, bins=bins_p, histtype="step", label="MC reweighted", weights=neweight, color="r", density=True)
+amp,bmp,_ = plt.hist(beam_inst_P_MC, density=False, bins=bins_p, histtype="step", label="MC original", weights=mcweight)
+aap,bbp,_ = plt.hist(beam_inst_P_data, density=False, bins=bins_p, alpha=0.2, label="data")
+awp,bwp,_ = plt.hist(beam_inst_P_MC, density=False, bins=bins_p, histtype="step", label="MC reweighted", weights=neweight, color="r")
 plt.legend()
 plt.title("beam_inst_P")
 plt.xlabel("Beam instrumented momentum [MeV]")
+plt.savefig(f"plots/momrew_Pinst{beamPDG}.pdf")
 plt.show()
 
-plt.hist(true_beam_P_MC, bins=bins_p, histtype="step", label="MC true original", weights=mcweight, density=True)
-plt.hist(true_beam_P_MC, bins=bins_p, histtype="step", label="MC true reweighted", weights=neweight, color="r", density=True)
+plt.hist(true_beam_P_MC, density=False, bins=bins_p, histtype="step", label="MC true original", weights=mcweight)
+plt.hist(true_beam_P_MC, density=False, bins=bins_p, histtype="step", label="MC true reweighted", weights=neweight, color="r")
 plt.legend()
 plt.title("true_beam_startP")
 plt.xlabel("True beam momentum [MeV]")
+plt.savefig(f"plots/momrew_Ptrue{beamPDG}.pdf")
 plt.show()
 
 
@@ -375,5 +381,6 @@ print(f"The extra shifting is {muu-mu0inst}, smearing is sqrt({sigmaa*sigmaa-sig
 
 plt.xlabel("beam_inst_KE [MeV]")
 plt.legend()
+plt.savefig(f"plots/momrew_exshift{beamPDG}.pdf")
 plt.show()
 print("Done")

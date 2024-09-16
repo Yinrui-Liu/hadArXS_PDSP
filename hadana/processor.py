@@ -19,6 +19,7 @@ class Processor:
         self.incBQcut = kwargs.get('incBQcut', [True]*3) # include beam start XYZ cut, beam angle cut, beam scraper cut
         self.runPassStoppingProtonCut = kwargs.get('runPassStoppingProtonCut', False)
         self.extra_correct_KEi = kwargs.get('extra_correct_KEi', True)
+        self.rng = np.random.RandomState(1)
 
         # output variables
         self.true_initial_energy = []
@@ -93,6 +94,7 @@ class Processor:
             true_endZ = []
             if self.fake_data is None:
                 isFake = evtno%2
+                #isFake = self.rng.uniform(size=len(evtno)) > 0.5
             elif self.fake_data is True:
                 isFake = [True]*Nbatch
             elif self.fake_data is False:

@@ -135,6 +135,7 @@ plt.plot([wmu_list[0], wmu_list[-1]], [min_chi2+1, min_chi2+1], "r:")
 plt.legend()
 plt.xlabel("Muon weight")
 plt.ylabel(r"$\chi^2$")
+plt.savefig("plots/muonrew_curve.pdf")
 plt.show()
 
 ### compare the histograms
@@ -162,4 +163,5 @@ plt.ylabel('Counts (all normalized to data)')
 plt.title('Histograms of Data and MC')
 plt.legend()
 plt.ylim([0, None])
+plt.savefig("plots/muonrew_hist.pdf")
 plt.show()
