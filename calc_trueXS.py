@@ -55,14 +55,21 @@ XS_y = true_XS[1:-1]
 XS_xerr = true_wKE[1:-1]
 XS_yerr = np.sqrt(np.diagonal(true_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
 plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Extracted true signal cross section")
+print("XS:", XS_y.tolist())
+print("XSerr:", XS_yerr.tolist())
 #xx = np.linspace(0, 1100, 100)
 #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
 plt.plot(*simcurve, label="Signal cross section used in simulation")
+XS_diff = XS_y - np.interp(XS_x, simcurve[0], simcurve[1])
+inv_XS_Vcov = np.linalg.pinv(true_XS_Vcov[1:-1, 1:-1])
+chi2 = np.einsum("i,ij,j->", XS_diff, inv_XS_Vcov, XS_diff)
+print(f"Chi2/Ndf = {chi2}/{len(XS_diff)}")
 plt.xlabel("Kinetic energy (MeV)")
 plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
 plt.xlim([true_bins[-1], true_bins[0]])
 plt.ylim(bottom=0)
 plt.legend()
+plt.savefig(f"plots/XStrue_{beamPDG}.pdf")
 plt.show()
 
 plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(true_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
@@ -72,4 +79,5 @@ plt.yticks(true_bins[1:-1])
 plt.xlabel(r"Kinetic energy (MeV)")
 plt.ylabel(r"Kinetic energy (MeV)")
 plt.colorbar()
+plt.savefig(f"plots/XStrueerr_{beamPDG}.pdf")
 plt.show()

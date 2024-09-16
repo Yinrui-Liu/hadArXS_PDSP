@@ -242,6 +242,10 @@ else:
     XS_xerr = true_wKE[1:-1]
     XS_yerr = np.sqrt(np.diagonal(unfd_XS_Vcov))[1:-1] # get the uncertainty from the covariance matrix
     plt.plot(*simcurve, 'r', label="Cross-section model used in simulation")
+    XS_diff = XS_y - np.interp(XS_x, simcurve[0], simcurve[1])
+    inv_XS_Vcov = np.linalg.pinv(unfd_XS_Vcov[1:-1, 1:-1])
+    chi2 = np.einsum("i,ij,j->", XS_diff, inv_XS_Vcov, XS_diff)
+    print(f"Chi2/Ndf = {chi2}/{len(XS_diff)}")
     plt.xlabel("Kinetic energy (MeV)")
     plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
     plt.xlim(([true_bins[-1], true_bins[0]]))
@@ -261,7 +265,7 @@ else:
         plt.legend()
     plt.show()
 
-    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(cov_for_plot), cmap="RdBu_r", vmin=-1, vmax=1) # true_bins is defined as reversed but on this plot it is increasing order
+    plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(cov_for_plot), cmap="RdBu_r", vmin=-1, vmax=1) # true_bins is defined as reversed but on this plot it is increasing order, which is correct
     plt.title(r"Correlation matrix for cross section")
     plt.xticks(true_bins[1:-1])
     plt.yticks(true_bins[1:-1])

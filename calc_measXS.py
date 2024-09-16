@@ -15,7 +15,7 @@ bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp 
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.13, 0.11, 0.12, 0, 0]  proton [0, 0, 0, 0, 0, 0, 0]
 inc_sys_bkg = False
 plot_energy_hists = False
-niter = 20 # 47 for pion data, 16 for proton data
+niter = 20 # 47 for pion data, 16 for proton data, 18 for pion fd, 14 for proton fd
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -285,10 +285,16 @@ plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Signal XS using unfol
 #xx = np.linspace(0, 1100, 100)
 #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
 plt.plot(*simcurve, label="Signal cross section used in simulation")
+XS_diff = XS_y - np.interp(XS_x, simcurve[0], simcurve[1])
+inv_XS_Vcov = np.linalg.pinv(unfd_XS_Vcov[1:-1, 1:-1])
+chi2 = np.einsum("i,ij,j->", XS_diff, inv_XS_Vcov, XS_diff)
+print(f"Chi2/Ndf = {chi2}/{len(XS_diff)}")
 plt.xlabel("Kinetic energy (MeV)")
 plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
 plt.xlim(([true_bins[-1], true_bins[0]]))
 plt.ylim(bottom=0)
+plt.legend()
+plt.savefig(f"plots/XSmeas_{beamPDG}.pdf")
 plt.show()
 
 plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(unfd_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
@@ -298,4 +304,5 @@ plt.yticks(true_bins[1:-1])
 plt.xlabel(r"Kinetic energy (MeV)")
 plt.ylabel(r"Kinetic energy (MeV)")
 plt.colorbar()
+plt.savefig(f"plots/XSmeascorr_{beamPDG}.pdf")
 plt.show()
