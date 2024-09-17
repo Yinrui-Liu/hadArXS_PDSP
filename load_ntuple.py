@@ -4,7 +4,7 @@ import hadana.selection as selection
 import hadana.MC_reweight as reweight
 
 
-# pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04
+# pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04, PDSPProd4_data_1GeV_reco2_ntuple_AltSCEData
 PDSP_ntuple_name = "pduneana_MC_20g4rw"
 beamPDG = 211
 outfilename = "processed_files/procVars_piMC.pkl"
@@ -67,7 +67,7 @@ elif beamPDG == 2212:
     particle = selection.Particle(beamPDG, 938.272)
     particle.SetCandidatePDGlist(2212)
 
-eventset = Processor(pduneana, particle, isMC, fake_data=False) # fake_data is False for all true MC, True for all fake data, None for half-half
+eventset = Processor(pduneana, particle, isMC, selection=[True,True,True,True,True,True], fake_data=False) # fake_data is False for all true MC, True for all fake data, None for half-half
 eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()

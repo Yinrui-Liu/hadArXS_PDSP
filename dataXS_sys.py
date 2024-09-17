@@ -17,6 +17,7 @@ inc_sys_MCstat = False
 inc_sys_MCXS = False
 inc_sys_reweiP = False
 inc_sys_Eloss = False
+inc_sys_AltSCE = False
 niter = 47 # 47 for pion data, 16 for proton data
 save_xs_for_sys = False
 sysmode = 'Eloss'
@@ -215,9 +216,10 @@ elif inc_sys_bkg:
     np.savetxt(f'syscovtxt/sys_incbkg_Cov_{beamPDG}.txt', unfd_XS_Vcov)
 elif use_total_cov:
     unfd_XS_Vcov_tot = np.loadtxt(f'syscovtxt/sys_incbkg_Cov_{beamPDG}.txt') # stat + sys:bkg
-    sysmode_list = ['MCstat', 'MCXS', 'reweiP', 'Eloss']
+    sysmode_list = ['MCstat', 'MCXS', 'reweiP', 'Eloss'] # sys:MCstat, MCXS, reweiP, Eloss
     for sysmd in sysmode_list:
         unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.loadtxt(f'syscovtxt/sys_{sysmd}_Cov_{beamPDG}.txt')
+    unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.diag(np.power([0, 19.899637548224746, 9.831537758922877, 19.289352459702855, 16.218207745826703, 36.30653231021586, 3.8789110001945346, 38.822604035627364, 11.29462574327863, 0], 2)[::-1]) # sys:SCE (list copied from draw_sys_uncert.py)
     print("Use total covariance matrix")
 print(f"Energy bin edges \t{true_bins[::-1]}\nMeasured cross section \t{unfd_XS[::-1].tolist()}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))[::-1].tolist()}")
 
@@ -258,6 +260,11 @@ else:
         order = [0,2,1]
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
         plt.savefig(f"plots/cross_section_{beamPDG}.pdf")
+    elif inc_sys_AltSCE: # list copied from results using AltSCE
+        plt.errorbar(XS_x, np.array([695.3743452575444, 605.2876906308809, 682.4889087910665, 607.9142803951634, 683.5686614053205, 567.6110260445066, 733.2202923432238, 560.353475275872])[::-1], np.array([50.83661577788303, 37.2799923711077, 32.31978472975942, 27.363311518973852, 28.287203736824203, 31.010980609972513, 48.736916840567304, 62.17338725560848])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # pionp
+        #plt.errorbar(XS_x, np.array([701.2151284670073, 950.5339363423396, 653.4133084850553, 526.7722768717589, 501.3438129830147, 533.4376321697075, 503.6115947145777, 541.3808652623917, 753.7580326408548, 419.64607837824633])[::-1], np.array([85.62732548607192, 106.41692645096067, 36.39309483426517, 33.4415705888185, 24.18600414616621, 22.986900015686818, 25.497775866967064, 35.31580867006177, 108.43390486921116, 250.62438179586113])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # proton
+        plt.legend()
+        plt.savefig(f"plots/XS_sysSCE_{beamPDG}.pdf")
     else:
         plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt="k.", label="Measured cross section")
         plt.ylim(bottom=0)

@@ -19,6 +19,8 @@ if beamPDG == 211:
 
     sys_Eloss = np.array([0, 22.894540280590363, 20.53762292395896, 7.200693360492374, 13.157065216763849, 26.397062742481385, 14.155196907539358, 37.607445589528396, 80.63194926048061, 0])
 
+    sys_SCE = np.array([0, 19.899637548224746, 9.831537758922877, 19.289352459702855, 16.218207745826703, 36.30653231021586, 3.8789110001945346, 38.822604035627364, 11.29462574327863, 0])
+
 elif beamPDG == 2212:
     true_bins = parameters.true_bins_proton
     stat = np.array([0, 119.24530642499873, 112.15100426371292, 52.18352757281957, 45.800828783197694, 33.61921127345375, 27.439007249606192, 27.164857444625373, 39.11655006609736, 98.45045599668674, 321.16348127629294, 0])
@@ -35,6 +37,8 @@ elif beamPDG == 2212:
 
     sys_Eloss = np.array([0, 13.790835249587168, 57.031532467449686, 20.402831302924156, 11.229635599151258, 11.013872720437318, 6.5343587485575, 8.250945116210378, 9.296407332487092, 98.17639597519852, 24.30134159149458, 0])
 
+    sys_SCE = np.array([0, 258.1286850269041, 114.07328617963128, 29.720813780313733, 140.4832074975052, 97.29055798039781, 37.455027518371026, 7.939756969605185, 32.01476549570259, 52.415278322147515, 123.042696276497, 0])
+
 
 xrange = np.concatenate([[true_bins[1]], true_bins[1:-1]])[::-1]
 print(xrange, stat, sys_bkg, sep='\n')
@@ -45,6 +49,7 @@ plt.step(xrange, sys_MCstat, label="Systematic: MC statistics")
 plt.step(xrange, sys_MCXS, label="Systematic: cross-section model")
 plt.step(xrange, sys_reweiP, label="Systematic: momentum reweighting")
 plt.step(xrange, sys_Eloss, label="Systematic: upstream energy loss")
+plt.step(xrange, sys_SCE, label="Systematic: space-charge correction")
 plt.xlabel("Kinetic energy [MeV]")
 plt.ylabel("Uncertainty on cross section [mb]")
 plt.ylim([0, None])
