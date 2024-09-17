@@ -1,10 +1,12 @@
 from hadana.packages import *
-
+import hadana.parameters as parameters
 
 use_real_data = True
 beampdg = 211
-binedges = np.linspace(0, 280, 100)
-xlabel = "Reconstructed track length [cm]" ### also edit below the variable to plot
+binedges = np.linspace(0, 280, 50)
+xlabel = r"Reconstructed track length [cm]" ### also edit below the variable to plot
+procdataname = f"processed_files/procVars_pidata.pkl" # processed_files/procVars_pidata.pkl
+procMCname = f"processed_files/procVars_piMC.pkl" # processed_files/procVars_piMC.pkl
 
 partypedict_pionp = {
     0: "Data", 
@@ -89,14 +91,12 @@ PDSP_ntuple = uproot.open(f"input_files/PDSPProd4_data_1GeV_reco2_ntuple_v09_41_
 pduneana_data = PDSP_ntuple["pduneana/beamana"]
 
 if beampdg == 211:
-    infile = "pi"
     pardict = partypedict_pionp
 elif beampdg == 2212:
-    infile = "p"
     pardict = partypedict_proton
 
 if use_real_data:
-    with open(f'processed_files/procVars_{infile}data.pkl', 'rb') as datafile:
+    with open(procdataname, 'rb') as datafile:
         processedVars_data = pickle.load(datafile)
     mask_SelectedPart_data = processedVars_data["mask_SelectedPart"]
     mask_FullSelection_data = processedVars_data["mask_FullSelection"]
@@ -104,17 +104,45 @@ if use_real_data:
     particle_type_data = processedVars_data["particle_type"]
     reweight_data = processedVars_data["reweight"]
 
-with open(f'processed_files/procVars_{infile}MC.pkl', 'rb') as mcfile:
+with open(procMCname, 'rb') as mcfile:
     processedVars_mc = pickle.load(mcfile)
 mask_SelectedPart_mc = processedVars_mc["mask_SelectedPart"]
 mask_FullSelection_mc = processedVars_mc["mask_FullSelection"]
 combined_mask_mc = mask_SelectedPart_mc & mask_FullSelection_mc
 particle_type_mc = processedVars_mc["particle_type"]
 reweight_mc = processedVars_mc["reweight"]
+#reweight_mc = np.ones_like(reweight_mc) # no reweighting
 
 ### edit here the variable to plot
-varhist_mc = processedVars_mc["reco_track_length"] # e.g. processedVars_mc["reco_track_length"], np.array(pduneana_mc["beam_inst_P"])
-varhist_data = processedVars_data["reco_track_length"] # e.g. processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"])
+if False: # to draw the angle variable
+    parBQ = parameters.pionBQ if beampdg==211 else parameters.protonBQ if beampdg==2212 else None
+
+    pt0 = np.array([pduneana_mc["reco_beam_calo_startX"], pduneana_mc["reco_beam_calo_startY"], pduneana_mc["reco_beam_calo_startZ"]])
+    pt1 = np.array([pduneana_mc["reco_beam_calo_endX"], pduneana_mc["reco_beam_calo_endY"], pduneana_mc["reco_beam_calo_endZ"]])
+    dir = pt1 - pt0
+    norms = np.linalg.norm(dir, axis=0)
+    norms = np.where(norms == 0, 1, norms) # to prevent 0 due to reco_beam_calo_start==-999 and reco_beam_calo_end==-999
+    dir /= norms
+    dir = np.transpose(dir)
+    beamdir_mc = np.array([np.cos(np.deg2rad(parBQ["beam_angleX_mc"])), np.cos(np.deg2rad(parBQ["beam_angleY_mc"])), np.cos(np.deg2rad(parBQ["beam_angleZ_mc"]))])
+    beamdir_mc /= np.linalg.norm(beamdir_mc)
+    beamdir = [beamdir_mc.tolist()]*len(dir)
+    beam_costh_mc = np.einsum('ij,ij->i', dir, beamdir)
+
+    pt0 = np.array([pduneana_data["reco_beam_calo_startX"], pduneana_data["reco_beam_calo_startY"], pduneana_data["reco_beam_calo_startZ"]])
+    pt1 = np.array([pduneana_data["reco_beam_calo_endX"], pduneana_data["reco_beam_calo_endY"], pduneana_data["reco_beam_calo_endZ"]])
+    dir = pt1 - pt0
+    norms = np.linalg.norm(dir, axis=0)
+    norms = np.where(norms == 0, 1, norms) # to prevent 0 due to reco_beam_calo_start==-999 and reco_beam_calo_end==-999
+    dir /= norms
+    dir = np.transpose(dir)
+    beamdir_data = np.array([np.cos(np.deg2rad(parBQ["beam_angleX_data"])), np.cos(np.deg2rad(parBQ["beam_angleY_data"])), np.cos(np.deg2rad(parBQ["beam_angleZ_data"]))])
+    beamdir_data /= np.linalg.norm(beamdir_data)
+    beamdir = [beamdir_data.tolist()]*len(dir)
+    beam_costh_data = np.einsum('ij,ij->i', dir, beamdir)
+
+varhist_mc = processedVars_mc["reco_track_length"] # examples: processedVars_mc["reco_track_length"], np.array(pduneana_mc["beam_inst_P"]), (np.array(pduneana_mc["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_mc"])/parameters.pionBQ["beam_startX_rms_mc"], np.where(np.array(pduneana_mc["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_mc["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_mc["reco_beam_calo_wire"])]), np.array(pduneana_mc["reco_beam_Chi2_proton"]) / np.array(pduneana_mc["reco_beam_Chi2_ndof"]), -1)
+varhist_data = processedVars_data["reco_track_length"] # examples: processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"]), (np.array(pduneana_data["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_data"])/parameters.pionBQ["beam_startX_rms_data"], np.where(np.array(pduneana_data["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_data["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_data["reco_beam_calo_wire"])]), np.array(pduneana_data["reco_beam_Chi2_proton"]) / np.array(pduneana_data["reco_beam_Chi2_ndof"]), -1)
 
 # draw the data points and stacked MC histograms by event type in the comparison plot
 divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(varhist_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
@@ -136,8 +164,8 @@ for err in hists_err_mc_sep:
 hists_err_mc = np.sqrt(hists_err_mc)
 
 print(f"Ndata = {Ndata:.1f}, Nmc = {Nmc:.1f}")
-ax1 = plt.axes([0.11, 0.24, 0.87, 0.74])
-ax2 = plt.axes([0.11, 0.09, 0.87, 0.12])
+ax1 = plt.axes([0.11, 0.24, 0.86, 0.74])
+ax2 = plt.axes([0.11, 0.09, 0.86, 0.12])
 bincenters = (binedges[:-1]+binedges[1:])/2
 ax1.errorbar(bincenters, hists_data, yerr=hists_err_data, fmt='o', color='k', markersize=1, label=f"Data {Ndata:.0f}")
 MC_data_scale = Ndata / Nmc
@@ -151,6 +179,7 @@ ax1.set_xticks(np.arange(binedges[0], binedges[-1], 10), minor=True)
 ax1.set_xticklabels([])
 ax1.set_xlim([binedges[0], binedges[-1]])
 ax1.set_ylabel("Weighted counts")
+#ax1.set_yscale('log')
 ax1.legend()
 ax2.set_xticks(np.arange(binedges[0], binedges[-1], 10), minor=True)
 ax2.set_xlim([binedges[0], binedges[-1]])
@@ -158,5 +187,5 @@ ax2.set_xlabel(xlabel)
 ax2.set_yticks([0,1,2])
 ax2.set_ylim([0, 2])
 ax2.set_ylabel("Data/MC")
-#plt.savefig(f"plots/reco_trklen_{beampdg}.pdf")
+#plt.savefig(f"plots/vardist_{beampdg}.pdf")
 plt.show()
