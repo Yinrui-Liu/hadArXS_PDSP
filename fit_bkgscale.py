@@ -9,7 +9,7 @@ PDSP_ntuple_name_MC = "pduneana_MC_20g4rw"
 PDSP_ntuple_name_data = "PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04"
 beamPDG = 211
 procfilename_MC = "processed_files/procVars_bkgfit_MC.pkl"
-procfilename_data = "processed_files/procVars_bkgfit_data.pkl"
+procfilename_data = "processed_files/procVars_bkgfit_data.pkl" # procfilename_data = procfilename_MC for fake data study
 Nevents = None
 variables_to_load = [
     "event",
@@ -169,6 +169,10 @@ parcolordict = {
     "misID:e/γ": "yellow",
     "misID:other": "peru",
 }
+# uncomment for fake data study, and don't forget to add "&(isFake==1)" for mask_MC and "&(isFake==0)" for mask_data
+'''PDSP_ntuple_MC = uproot.open(f"input_files/{PDSP_ntuple_name_MC}.root")
+pduneana_MC = PDSP_ntuple_MC["pduneana/beamana"]
+isFake = np.array(pduneana_MC["event"])%2'''
 ### use Michel score distribution for muon bkg fit
 mask_Selection_bkgfit_mu = processedVars_MC["mask_Selection_bkgfit_mu"]
 mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_mu)[:Nevents]
