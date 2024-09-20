@@ -8,8 +8,8 @@ import hadana.selection as selection
 PDSP_ntuple_name_MC = "pduneana_MC_20g4rw"
 PDSP_ntuple_name_data = "PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04"
 beamPDG = 211
-procfilename_MC = "processed_files/procVars_bkgfit_MC.pkl"
-procfilename_data = "processed_files/procVars_bkgfit_data.pkl" # procfilename_data = procfilename_MC for fake data study
+procfilename_MC = f"processed_files/procVars_bkgfit_piMC.pkl"
+procfilename_data = f"processed_files/procVars_bkgfit_pidata.pkl" # procfilename_data = procfilename_MC for fake data study
 Nevents = None
 variables_to_load = [
     "event",
@@ -61,12 +61,14 @@ elif beamPDG == 2212:
 selection_bkgfit_mu = [True,True,True,True,False,True] # full selection except for Michel score cut
 selection_bkgfit_p = [True,True,True,True,True,False] # full selection except for Proton cut
 incBQcut_bkgfit_spi = [True,False,True] # no angle cut in the beam quality cut
+incBQcut_bkgfit_sp = incBQcut_bkgfit_spi
+selection_bkgfit_stop = [True,True,True,True,False] # full selection except for stopping proton cut
 
 if os.path.exists(procfilename_MC):
     with open(procfilename_MC, 'rb') as procfile_MC:
         processedVars_MC = pickle.load(procfile_MC)
     print(f"Using existing file {procfilename_MC}")
-    if 'mask_Selection_bkgfit_mu' not in processedVars_MC:
+    if beamPDG==211 and 'mask_Selection_bkgfit_mu' not in processedVars_MC:
         print(f"Processing to add bkgfit-related variables in {procfilename_MC}")
         PDSP_ntuple_MC = uproot.open(f"input_files/{PDSP_ntuple_name_MC}.root")
         pduneana_MC = PDSP_ntuple_MC["pduneana/beamana"]
@@ -98,6 +100,30 @@ if os.path.exists(procfilename_MC):
         processedVars_MC["mask_Selection_bkgfit_spi"] = mask_Selection_bkgfit_spi
         with open(procfilename_MC, 'wb') as procfile_MC:
             pickle.dump(processedVars_MC, procfile_MC)
+    if beamPDG==2212 and 'mask_Selection_bkgfit_sp' not in processedVars_MC:
+        print(f"Processing to add bkgfit-related variables in {procfilename_MC}")
+        PDSP_ntuple_MC = uproot.open(f"input_files/{PDSP_ntuple_name_MC}.root")
+        pduneana_MC = PDSP_ntuple_MC["pduneana/beamana"]
+
+        eventset_MC = Processor(pduneana_MC, particle, isMC=True, incBQcut=incBQcut_bkgfit_sp, fake_data=False)
+        eventset_MC.LoadVariables(variables_to_load)
+        eventset_MC.ProcessEvent(Nevents=Nevents)
+        mask_Selection_bkgfit_sp = eventset_MC.mask_FullSelection
+        if len(mask_Selection_bkgfit_sp) != len(processedVars_MC["mask_FullSelection"]):
+            raise Exception("The number of events are not the same. Run load_ntuple.py again!")
+        del eventset_MC
+
+        eventset_MC = Processor(pduneana_MC, particle, isMC=True, selection=selection_bkgfit_stop, fake_data=False)
+        eventset_MC.LoadVariables(variables_to_load)
+        eventset_MC.ProcessEvent(Nevents=Nevents)
+        mask_Selection_bkgfit_stop = eventset_MC.mask_FullSelection
+
+        processedVars_MC["costheta_bkgfit_sp"] = eventset_MC.costheta_bkgfit_sp
+        processedVars_MC["mask_Selection_bkgfit_sp"] = mask_Selection_bkgfit_sp
+        processedVars_MC["chi2_stopping_proton"] = eventset_MC.chi2_stopping_proton
+        processedVars_MC["mask_Selection_bkgfit_stop"] = mask_Selection_bkgfit_stop
+        with open(procfilename_MC, 'wb') as procfile_MC:
+            pickle.dump(processedVars_MC, procfile_MC)
 else:
     print(f"{procfilename_MC} not exists. Run load_ntuple.py first to get processed file.")
 
@@ -105,7 +131,7 @@ if os.path.exists(procfilename_data):
     with open(procfilename_data, 'rb') as procfile_data:
         processedVars_data = pickle.load(procfile_data)
     print(f"Using existing file {procfilename_data}")
-    if 'mask_Selection_bkgfit_mu' not in processedVars_data:
+    if beamPDG==211 and 'mask_Selection_bkgfit_mu' not in processedVars_data:
         print(f"Processing to add bkgfit-related variables in {procfilename_data}")
         PDSP_ntuple_data = uproot.open(f"input_files/{PDSP_ntuple_name_data}.root")
         pduneana_data = PDSP_ntuple_data["pduneana/beamana"]
@@ -137,6 +163,30 @@ if os.path.exists(procfilename_data):
         processedVars_data["mask_Selection_bkgfit_spi"] = mask_Selection_bkgfit_spi
         with open(procfilename_data, 'wb') as procfile_data:
             pickle.dump(processedVars_data, procfile_data)
+    if beamPDG==2212 and 'mask_Selection_bkgfit_sp' not in processedVars_data:
+        print(f"Processing to add bkgfit-related variables in {procfilename_data}")
+        PDSP_ntuple_data = uproot.open(f"input_files/{PDSP_ntuple_name_data}.root")
+        pduneana_data = PDSP_ntuple_data["pduneana/beamana"]
+
+        eventset_data = Processor(pduneana_data, particle, isMC=False, incBQcut=incBQcut_bkgfit_sp)
+        eventset_data.LoadVariables(variables_to_load)
+        eventset_data.ProcessEvent(Nevents=Nevents)
+        mask_Selection_bkgfit_sp = eventset_data.mask_FullSelection
+        if len(mask_Selection_bkgfit_sp) != len(processedVars_data["mask_FullSelection"]):
+            raise Exception("The number of events are not the same. Run load_ntuple.py again!")
+        del eventset_data
+
+        eventset_data = Processor(pduneana_data, particle, isMC=False, selection=selection_bkgfit_stop)
+        eventset_data.LoadVariables(variables_to_load)
+        eventset_data.ProcessEvent(Nevents=Nevents)
+        mask_Selection_bkgfit_stop = eventset_data.mask_FullSelection
+
+        processedVars_data["costheta_bkgfit_sp"] = eventset_data.costheta_bkgfit_sp
+        processedVars_data["mask_Selection_bkgfit_sp"] = mask_Selection_bkgfit_sp
+        processedVars_data["chi2_stopping_proton"] = eventset_data.chi2_stopping_proton
+        processedVars_data["mask_Selection_bkgfit_stop"] = mask_Selection_bkgfit_stop
+        with open(procfilename_data, 'wb') as procfile_data:
+            pickle.dump(processedVars_data, procfile_data)
 else:
     print(f"{procfilename_data} not exists. Run load_ntuple.py first to get processed file.")
 
@@ -146,21 +196,36 @@ weights_MC = processedVars_MC["reweight"]
 mask_SelectedPart_data = processedVars_data["mask_SelectedPart"]
 weights_data = processedVars_data["reweight"]
 
-pardict = {
-    0: "Data", 
-    1: "Pion inelastic", 
-    2: "Pion decay", 
-    3: "Muon", 
-    4: "misID:cosmic", 
-    5: "misID:proton", 
-    6: "misID:pion", 
-    7: "misID:muon", 
-    8: "misID:e/γ", 
-    9: "misID:other", 
-}
+if beamPDG == 211:
+    pardict = {
+        0: "Data", 
+        1: "Pion inelastic", 
+        2: "Pion decay", 
+        3: "Muon", 
+        4: "misID:cosmic", 
+        5: "misID:proton", 
+        6: "misID:pion", 
+        7: "misID:muon", 
+        8: "misID:e/γ", 
+        9: "misID:other", 
+    }
+elif beamPDG == 2212:
+    pardict = {
+        0: "Data", 
+        1: "Proton inelatic", 
+        2: "Stopping proton", 
+        3: "misID:cosmic", 
+        4: "misID:proton", 
+        5: "misID:pion", 
+        6: "misID:muon", 
+        7: "misID:e/γ", 
+        8: "misID:other", 
+    }
 parcolordict = {
     "Pion inelastic": "firebrick",
+    "Proton inelatic": "firebrick",
     "Pion decay": "orange",
+    "Stopping proton": "orange",
     "Muon": "springgreen",
     "misID:cosmic": "deepskyblue",
     "misID:proton": "darkviolet",
@@ -170,162 +235,269 @@ parcolordict = {
     "misID:other": "peru",
 }
 # uncomment for fake data study, and don't forget to add "&(isFake==1)" for mask_MC and "&(isFake==0)" for mask_data
-'''PDSP_ntuple_MC = uproot.open(f"input_files/{PDSP_ntuple_name_MC}.root")
+PDSP_ntuple_MC = uproot.open(f"input_files/{PDSP_ntuple_name_MC}.root")
 pduneana_MC = PDSP_ntuple_MC["pduneana/beamana"]
-isFake = np.array(pduneana_MC["event"])%2'''
-### use Michel score distribution for muon bkg fit
-mask_Selection_bkgfit_mu = processedVars_MC["mask_Selection_bkgfit_mu"]
-mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_mu)[:Nevents]
-weights_MC_mu = weights_MC[:Nevents][mask_MC]
-x_MC = processedVars_MC["Michel_score_bkgfit_mu"][:Nevents][mask_MC]
-par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
+isFake = np.array(pduneana_MC["event"])%2
 
-mask_Selection_bkgfit_mu = processedVars_data["mask_Selection_bkgfit_mu"]
-mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_mu)[:Nevents]
-weights_data_mu = weights_data[:Nevents][mask_data]
-x_data = processedVars_data["Michel_score_bkgfit_mu"][:Nevents][mask_data]
+if beamPDG == 211:
+    ### use Michel score distribution for muon bkg fit
+    mask_Selection_bkgfit_mu = processedVars_MC["mask_Selection_bkgfit_mu"]
+    mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_mu)[:Nevents]
+    weights_MC_mu = weights_MC[:Nevents][mask_MC]
+    x_MC = processedVars_MC["Michel_score_bkgfit_mu"][:Nevents][mask_MC]
+    par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
 
-bins = np.linspace(0, 1, 51)
-fit_range = [0.6, 0.9]
-def sideband_fit_mu(scale_factor):
-    weight_bkg = np.where( (par_type_MC==3)|(par_type_MC==7), scale_factor, 1)
-    weights_MC_rew = weights_MC_mu*weight_bkg
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_mu, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_mu)/np.sum(weights_MC_mu))
-    return chi2
-m = iminuit.Minuit(sideband_fit_mu, scale_factor=1)
-m.migrad()
-sf_mu = m.values["scale_factor"]
-sferr_mu = m.errors["scale_factor"]
-print(f"Best fit scale factor: {sf_mu}")
-print(f"Uncertainty on scale factor: {sferr_mu}")
+    mask_Selection_bkgfit_mu = processedVars_data["mask_Selection_bkgfit_mu"]
+    mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_mu)[:Nevents]
+    weights_data_mu = weights_data[:Nevents][mask_data]
+    x_data = processedVars_data["Michel_score_bkgfit_mu"][:Nevents][mask_data]
 
-x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_mu], bins)
-x_hist_data = x_hist_data[0]
-data_errors = data_errors[0]
-x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_mu)
+    bins = np.linspace(0, 1, 51)
+    fit_range = [0.6, 0.9]
+    def sideband_fit_mu(scale_factor):
+        weight_bkg = np.where( (par_type_MC==3)|(par_type_MC==7), scale_factor, 1)
+        weights_MC_rew = weights_MC_mu*weight_bkg
+        chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_mu, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_mu)/np.sum(weights_MC_mu))
+        return chi2
+    m = iminuit.Minuit(sideband_fit_mu, scale_factor=1)
+    m.migrad()
+    sf_mu = m.values["scale_factor"]
+    sferr_mu = m.errors["scale_factor"]
+    print(f"Best fit scale factor: {sf_mu}")
+    print(f"Uncertainty on scale factor: {sferr_mu}")
 
-weight_mu = np.where( (par_type_MC==3)|(par_type_MC==7), sf_mu, 1)
-weights_MC_rew = weights_MC_mu*weight_mu
-x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
+    x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_mu], bins)
+    x_hist_data = x_hist_data[0]
+    data_errors = data_errors[0]
+    x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_mu)
 
-bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
-bin_widths = np.diff(bins)
-plt.figure(figsize=(10, 6))
-plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_mu)/sum(weights_MC_mu), [0]]), where='post', label='Original MC (total)', color='gold')
-divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_mu)
-divided_weights_mc = [np.array(i)*sum(weights_data_mu)/sum(weights_MC_mu) for i in divided_weights_mc]
-plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_mu)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (muon weight = {sf_mu:.3f}±{sferr_mu:.3f})', color='r', linestyle='--')
-plt.xlabel('Daughter Michel score')
-plt.ylabel('Counts (all normalized to data)')
-plt.legend()
-plt.ylim([0.1, None])
-plt.yscale('log')
-plt.savefig("plots/bkgfit_mu.pdf")
-plt.show()
+    weight_mu = np.where( (par_type_MC==3)|(par_type_MC==7), sf_mu, 1)
+    weights_MC_rew = weights_MC_mu*weight_mu
+    x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
 
-### use proton chi2 distribution for proton bkg fit
-mask_Selection_bkgfit_p = processedVars_MC["mask_Selection_bkgfit_p"]
-mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_p)[:Nevents]
-weights_MC_p = weights_MC[:Nevents][mask_MC]
-x_MC = processedVars_MC["proton_chi2_bkgfit_p"][:Nevents][mask_MC]
-par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
+    bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
+    bin_widths = np.diff(bins)
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_mu)/sum(weights_MC_mu), [0]]), where='post', label='Original MC (total)', color='gold')
+    divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_mu)
+    divided_weights_mc = [np.array(i)*sum(weights_data_mu)/sum(weights_MC_mu) for i in divided_weights_mc]
+    plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_mu)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (muon weight = {sf_mu:.3f}±{sferr_mu:.3f})', color='r', linestyle='--')
+    plt.xlabel('Daughter Michel score')
+    plt.ylabel('Counts (all normalized to data)')
+    plt.legend()
+    plt.ylim([0.1, None])
+    plt.yscale('log')
+    plt.savefig("plots/bkgfit_mu.pdf")
+    plt.show()
 
-mask_Selection_bkgfit_p = processedVars_data["mask_Selection_bkgfit_p"]
-mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_p)[:Nevents]
-weights_data_p = weights_data[:Nevents][mask_data]
-x_data = processedVars_data["proton_chi2_bkgfit_p"][:Nevents][mask_data]
+    ### use proton chi2 distribution for proton bkg fit
+    mask_Selection_bkgfit_p = processedVars_MC["mask_Selection_bkgfit_p"]
+    mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_p)[:Nevents]
+    weights_MC_p = weights_MC[:Nevents][mask_MC]
+    x_MC = processedVars_MC["proton_chi2_bkgfit_p"][:Nevents][mask_MC]
+    par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
 
-bins = np.linspace(0, 100, 51)
-fit_range = [20, 70]
-def sideband_fit_p(scale_factor):
-    weight_bkg = np.where(par_type_MC==5, scale_factor, 1)
-    weights_MC_rew = weights_MC_p*weight_bkg
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_p, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_p)/np.sum(weights_MC_p))
-    return chi2
-m = iminuit.Minuit(sideband_fit_p, scale_factor=1)
-m.migrad()
-sf_p = m.values["scale_factor"]
-sferr_p = m.errors["scale_factor"]
-print(f"Best fit scale factor: {sf_p}")
-print(f"Uncertainty on scale factor: {sferr_p}")
+    mask_Selection_bkgfit_p = processedVars_data["mask_Selection_bkgfit_p"]
+    mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_p)[:Nevents]
+    weights_data_p = weights_data[:Nevents][mask_data]
+    x_data = processedVars_data["proton_chi2_bkgfit_p"][:Nevents][mask_data]
 
-x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_p], bins)
-x_hist_data = x_hist_data[0]
-data_errors = data_errors[0]
-x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_p)
+    bins = np.linspace(0, 100, 51)
+    fit_range = [20, 70]
+    def sideband_fit_p(scale_factor):
+        weight_bkg = np.where(par_type_MC==5, scale_factor, 1)
+        weights_MC_rew = weights_MC_p*weight_bkg
+        chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_p, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_p)/np.sum(weights_MC_p))
+        return chi2
+    m = iminuit.Minuit(sideband_fit_p, scale_factor=1)
+    m.migrad()
+    sf_p = m.values["scale_factor"]
+    sferr_p = m.errors["scale_factor"]
+    print(f"Best fit scale factor: {sf_p}")
+    print(f"Uncertainty on scale factor: {sferr_p}")
 
-weight_p = np.where(par_type_MC==5, sf_p, 1)
-weights_MC_rew = weights_MC_p*weight_p
-x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
+    x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_p], bins)
+    x_hist_data = x_hist_data[0]
+    data_errors = data_errors[0]
+    x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_p)
 
-bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
-bin_widths = np.diff(bins)
-plt.figure(figsize=(10, 6))
-plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_p)/sum(weights_MC_p), [0]]), where='post', label='Original MC (total)', color='gold')
-divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_p)
-divided_weights_mc = [np.array(i)*sum(weights_data_p)/sum(weights_MC_p) for i in divided_weights_mc]
-plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_p)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (proton weight = {sf_p:.3f}±{sferr_p:.3f})', color='r', linestyle='--')
-plt.xlabel(r'Proton dE/dx $\chi^2$')
-plt.ylabel('Counts (all normalized to data)')
-plt.legend()
-plt.ylim([0.1, None])
-plt.yscale('log')
-plt.savefig("plots/bkgfit_p.pdf")
-plt.show()
+    weight_p = np.where(par_type_MC==5, sf_p, 1)
+    weights_MC_rew = weights_MC_p*weight_p
+    x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
 
-### use beam angle costheta for secondary pion bkg fit
-mask_Selection_bkgfit_spi = processedVars_MC["mask_Selection_bkgfit_spi"]
-mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_spi)[:Nevents]
-weights_MC_spi = weights_MC[:Nevents][mask_MC]
-x_MC = processedVars_MC["costheta_bkgfit_spi"][:Nevents][mask_MC]
-par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
+    bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
+    bin_widths = np.diff(bins)
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_p)/sum(weights_MC_p), [0]]), where='post', label='Original MC (total)', color='gold')
+    divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_p)
+    divided_weights_mc = [np.array(i)*sum(weights_data_p)/sum(weights_MC_p) for i in divided_weights_mc]
+    plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_p)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (proton weight = {sf_p:.3f}±{sferr_p:.3f})', color='r', linestyle='--')
+    plt.xlabel(r'Proton dE/dx $\chi^2$')
+    plt.ylabel('Counts (all normalized to data)')
+    plt.legend()
+    plt.ylim([0.1, None])
+    plt.yscale('log')
+    plt.savefig("plots/bkgfit_p.pdf")
+    plt.show()
 
-mask_Selection_bkgfit_spi = processedVars_data["mask_Selection_bkgfit_spi"]
-mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_spi)[:Nevents]
-weights_data_spi = weights_data[:Nevents][mask_data]
-x_data = processedVars_data["costheta_bkgfit_spi"][:Nevents][mask_data]
+    ### use beam angle costheta for secondary pion bkg fit
+    mask_Selection_bkgfit_spi = processedVars_MC["mask_Selection_bkgfit_spi"]
+    mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_spi)[:Nevents]
+    weights_MC_spi = weights_MC[:Nevents][mask_MC]
+    x_MC = processedVars_MC["costheta_bkgfit_spi"][:Nevents][mask_MC]
+    par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
 
-bins = np.linspace(0.85, 1, 51)
-fit_range = [0.9, 0.95]
-weights_MC_spi = weights_MC_spi*np.where(par_type_MC==5, sf_p, 1)
-def sideband_fit_spi(scale_factor):
-    weight_bkg = np.where(par_type_MC==6, scale_factor, 1)
-    weights_MC_rew = weights_MC_spi*weight_bkg
-    chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_spi, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_spi)/np.sum(weights_MC_spi))
-    return chi2
-m = iminuit.Minuit(sideband_fit_spi, scale_factor=1)
-m.migrad()
-sf_spi = m.values["scale_factor"]
-sferr_spi = m.errors["scale_factor"]
-print(f"Best fit scale factor: {sf_spi}")
-print(f"Uncertainty on scale factor: {sferr_spi}")
+    mask_Selection_bkgfit_spi = processedVars_data["mask_Selection_bkgfit_spi"]
+    mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_spi)[:Nevents]
+    weights_data_spi = weights_data[:Nevents][mask_data]
+    x_data = processedVars_data["costheta_bkgfit_spi"][:Nevents][mask_data]
 
-x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_spi], bins)
-x_hist_data = x_hist_data[0]
-data_errors = data_errors[0]
-x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_spi)
+    bins = np.linspace(0.85, 1, 51)
+    fit_range = [0.9, 0.95]
+    weights_MC_spi = weights_MC_spi*np.where(par_type_MC==5, sf_p, 1) # include proton scale before fit for secondary pion
+    def sideband_fit_spi(scale_factor):
+        weight_bkg = np.where(par_type_MC==6, scale_factor, 1)
+        weights_MC_rew = weights_MC_spi*weight_bkg
+        chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_spi, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_spi)/np.sum(weights_MC_spi))
+        return chi2
+    m = iminuit.Minuit(sideband_fit_spi, scale_factor=1)
+    m.migrad()
+    sf_spi = m.values["scale_factor"]
+    sferr_spi = m.errors["scale_factor"]
+    print(f"Best fit scale factor: {sf_spi}")
+    print(f"Uncertainty on scale factor: {sferr_spi}")
 
-weight_spi = np.where(par_type_MC==6, sf_spi, 1)
-weights_MC_rew = weights_MC_spi*weight_spi
-x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
+    x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_spi], bins)
+    x_hist_data = x_hist_data[0]
+    data_errors = data_errors[0]
+    x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_spi)
 
-bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
-bin_widths = np.diff(bins)
-plt.figure(figsize=(10, 6))
-plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_spi)/sum(weights_MC_spi), [0]]), where='post', label='Original MC (total)', color='gold')
-divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_spi)
-divided_weights_mc = [np.array(i)*sum(weights_data_spi)/sum(weights_MC_spi) for i in divided_weights_mc]
-plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
-plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_spi)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary pion weight = {sf_spi:.3f}±{sferr_spi:.3f})', color='r', linestyle='--')
-plt.xlabel(r'Beam angle $\cos\theta$')
-plt.ylabel('Counts (all normalized to data)')
-plt.legend()
-plt.ylim([0.1, None])
-plt.yscale('log')
-plt.savefig("plots/bkgfit_spi.pdf")
-plt.show()
+    weight_spi = np.where(par_type_MC==6, sf_spi, 1)
+    weights_MC_rew = weights_MC_spi*weight_spi
+    x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
+
+    bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
+    bin_widths = np.diff(bins)
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_spi)/sum(weights_MC_spi), [0]]), where='post', label='Original MC (total)', color='gold')
+    divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_spi)
+    divided_weights_mc = [np.array(i)*sum(weights_data_spi)/sum(weights_MC_spi) for i in divided_weights_mc]
+    plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_spi)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary pion weight = {sf_spi:.3f}±{sferr_spi:.3f})', color='r', linestyle='--')
+    plt.xlabel(r'Beam angle $\cos\theta$')
+    plt.ylabel('Counts (all normalized to data)')
+    plt.legend()
+    plt.ylim([0.1, None])
+    plt.yscale('log')
+    plt.savefig("plots/bkgfit_spi.pdf")
+    plt.show()
+
+if beamPDG == 2212:
+    ### use beam angle costheta for secondary proton bkg fit
+    mask_Selection_bkgfit_sp = processedVars_MC["mask_Selection_bkgfit_sp"]
+    mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_sp)[:Nevents]
+    weights_MC_sp = weights_MC[:Nevents][mask_MC]
+    x_MC = processedVars_MC["costheta_bkgfit_sp"][:Nevents][mask_MC]
+    par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
+
+    mask_Selection_bkgfit_sp = processedVars_data["mask_Selection_bkgfit_sp"]
+    mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_sp)[:Nevents]
+    weights_data_sp = weights_data[:Nevents][mask_data]
+    x_data = processedVars_data["costheta_bkgfit_sp"][:Nevents][mask_data]
+
+    bins = np.linspace(0.85, 1, 51)
+    fit_range = [0.9, 0.95]
+    def sideband_fit_sp(scale_factor):
+        weight_bkg = np.where(par_type_MC==4, scale_factor, 1)
+        weights_MC_rew = weights_MC_sp*weight_bkg
+        chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_sp, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_sp)/np.sum(weights_MC_sp))
+        return chi2
+    m = iminuit.Minuit(sideband_fit_sp, scale_factor=1)
+    m.migrad()
+    sf_sp = m.values["scale_factor"]
+    sferr_sp = m.errors["scale_factor"]
+    print(f"Best fit scale factor: {sf_sp}")
+    print(f"Uncertainty on scale factor: {sferr_sp}")
+
+    x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_sp], bins)
+    x_hist_data = x_hist_data[0]
+    data_errors = data_errors[0]
+    x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_sp)
+
+    weight_sp = np.where(par_type_MC==4, sf_sp, 1)
+    weights_MC_rew = weights_MC_sp*weight_sp
+    x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
+
+    bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
+    bin_widths = np.diff(bins)
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_sp)/sum(weights_MC_sp), [0]]), where='post', label='Original MC (total)', color='gold')
+    divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_sp)
+    divided_weights_mc = [np.array(i)*sum(weights_data_sp)/sum(weights_MC_sp) for i in divided_weights_mc]
+    plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_sp)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary proton weight = {sf_sp:.3f}±{sferr_sp:.3f})', color='r', linestyle='--')
+    plt.xlabel(r'Beam angle $\cos\theta$')
+    plt.ylabel('Counts (all normalized to data)')
+    plt.legend()
+    plt.ylim([0.1, None])
+    plt.yscale('log')
+    plt.savefig("plots/bkgfit_sp.pdf")
+    plt.show()
+
+    ### use stopping proton chi2 distribution for stopping proton bkg fit
+    mask_Selection_bkgfit_stop = processedVars_MC["mask_Selection_bkgfit_stop"]
+    mask_MC = (mask_SelectedPart_MC & mask_Selection_bkgfit_stop)[:Nevents]
+    weights_MC_stop = weights_MC[:Nevents][mask_MC]
+    x_MC = processedVars_MC["chi2_stopping_proton"][:Nevents][mask_MC]
+    par_type_MC = processedVars_MC["particle_type"][:Nevents][mask_MC]
+
+    mask_Selection_bkgfit_stop = processedVars_data["mask_Selection_bkgfit_stop"]
+    mask_data = (mask_SelectedPart_data & mask_Selection_bkgfit_stop)[:Nevents]
+    weights_data_stop = weights_data[:Nevents][mask_data]
+    x_data = processedVars_data["chi2_stopping_proton"][:Nevents][mask_data]
+
+    bins = np.linspace(0, 50, 11)
+    fit_range = [0, 20]
+    def sideband_fit_stop(scale_factor):
+        weight_bkg = np.where(par_type_MC==2, scale_factor, 1)
+        weights_MC_rew = weights_MC_stop*weight_bkg
+        chi2, _ = utils.cal_chi2_2hists(x_data, x_MC, weights_data_stop, weights_MC_rew, bins, fit_range, scale21=np.sum(weights_data_stop)/np.sum(weights_MC_stop))
+        return chi2
+    m = iminuit.Minuit(sideband_fit_stop, scale_factor=1)
+    m.migrad()
+    sf_stop = m.values["scale_factor"]
+    sferr_stop = m.errors["scale_factor"]
+    print(f"Best fit scale factor: {sf_stop}")
+    print(f"Uncertainty on scale factor: {sferr_stop}")
+
+    x_hist_data, data_errors, _ = utils.get_vars_hists([x_data], [weights_data_stop], bins)
+    x_hist_data = x_hist_data[0]
+    data_errors = data_errors[0]
+    x_hist_MC, _ = np.histogram(x_MC, bins, weights=weights_MC_stop)
+
+    weight_stop = np.where(par_type_MC==2, sf_stop, 1)
+    weights_MC_rew = weights_MC_stop*weight_stop
+    x_hist_MC_rew, _ = np.histogram(x_MC, bins, weights=weights_MC_rew)
+
+    bin_centers = (np.array(bins[:-1]) + np.array(bins[1:])) / 2
+    bin_widths = np.diff(bins)
+    plt.figure(figsize=(10, 6))
+    plt.errorbar(bin_centers, x_hist_data, yerr=data_errors, fmt='.', label='Data', color='k')
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC*sum(weights_data_stop)/sum(weights_MC_stop), [0]]), where='post', label='Original MC (total)', color='gold')
+    divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(x_MC, par_type_MC, mask=np.ones_like(x_MC, dtype=bool), weight=weights_MC_stop)
+    divided_weights_mc = [np.array(i)*sum(weights_data_stop)/sum(weights_MC_stop) for i in divided_weights_mc]
+    plt.hist(divided_vars_mc[1:], bins, weights=divided_weights_mc[1:], label=[f'{pardict[i+1]}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True, alpha=0.3)
+    plt.step(np.concatenate([[bins[0]], bins]), np.concatenate([[0], x_hist_MC_rew*sum(weights_data_stop)/sum(weights_MC_rew), [0]]), where='post', label=f'Reweighted MC (secondary proton weight = {sf_stop:.3f}±{sferr_stop:.3f})', color='r', linestyle='--')
+    plt.xlabel(r'$\chi^2$ assuming stopping proton')
+    plt.ylabel('Counts (all normalized to data)')
+    plt.legend()
+    plt.ylim([0.1, None])
+    plt.yscale('log')
+    plt.savefig("plots/bkgfit_stop.pdf")
+    plt.show()

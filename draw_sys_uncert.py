@@ -1,7 +1,7 @@
 from hadana.packages import *
 import hadana.parameters as parameters
 
-beamPDG = 211
+beamPDG = 2212
 # copy arrays from the output uncertainty of dataXS_sys.py
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -21,9 +21,11 @@ if beamPDG == 211:
 
     sys_SCE = np.array([0, 19.899637548224746, 9.831537758922877, 19.289352459702855, 16.218207745826703, 36.30653231021586, 3.8789110001945346, 38.822604035627364, 11.29462574327863, 0])
 
+    sys_tot = np.sqrt(sys_bkg*sys_bkg + sys_MCstat*sys_MCstat + sys_MCXS*sys_MCXS + sys_reweiP*sys_reweiP + sys_Eloss*sys_Eloss + sys_SCE*sys_SCE)
+
 elif beamPDG == 2212:
     true_bins = parameters.true_bins_proton
-    stat = np.array([0, 119.24530642499873, 112.15100426371292, 52.18352757281957, 45.800828783197694, 33.61921127345375, 27.439007249606192, 27.164857444625373, 39.11655006609736, 98.45045599668674, 321.16348127629294, 0])
+    stat = np.array([0, 122.23103867149541, 139.0915888602077, 38.29014542087729, 46.91132387859269, 31.800137119874886, 27.55723084941813, 27.953102027075346, 41.10917077777832, 124.27779863971186, 268.3120678607853, 0])
     stat_sq = stat*stat
 
     sys_bkg = np.array([0, 123.76510566107466, 143.23872497122406, 38.92410896447849, 48.17318656351251, 32.67882756817434, 28.440883596643925, 28.9661267562788, 42.7032878623663, 132.1916353736344, 323.1007463628412, 0])
@@ -39,9 +41,11 @@ elif beamPDG == 2212:
 
     sys_SCE = np.array([0, 258.1286850269041, 114.07328617963128, 29.720813780313733, 140.4832074975052, 97.29055798039781, 37.455027518371026, 7.939756969605185, 32.01476549570259, 52.415278322147515, 123.042696276497, 0])
 
+    sys_tot = np.sqrt(sys_bkg*sys_bkg + sys_MCstat*sys_MCstat + sys_MCXS*sys_MCXS + sys_reweiP*sys_reweiP + sys_Eloss*sys_Eloss + sys_SCE*sys_SCE)
+
 
 xrange = np.concatenate([[true_bins[1]], true_bins[1:-1]])[::-1]
-print(xrange, stat, sys_bkg, sep='\n')
+print(xrange, stat, sys_bkg, sys_tot, np.sqrt(stat*stat+sys_tot*sys_tot), sep='\n')
 plt.step(xrange, stat, label="Statisical")
 plt.bar((xrange[1:]+xrange[:-1])/2, stat[1:], width=xrange[1:]-xrange[:-1], color='skyblue', alpha=0.5)
 plt.step(xrange, sys_bkg, label="Systematic: background")

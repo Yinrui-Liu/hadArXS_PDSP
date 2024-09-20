@@ -47,6 +47,7 @@ class Processor:
         self.costheta_bkgfit_spi = np.array([])
         self.chi2_stopping_proton = np.array([])
         self.trklen_csda_proton = np.array([])
+        self.costheta_bkgfit_sp = np.array([])
         
     def LoadVariables(self, variable_list): # load more variables
         self.variables_to_load += variable_list
@@ -238,6 +239,7 @@ class Processor:
             elif self.particle.pdg == 2212:
                 self.chi2_stopping_proton = np.concatenate([self.chi2_stopping_proton, self.particle.var_dict["chi2_stopping_proton"]])
                 self.trklen_csda_proton = np.concatenate([self.trklen_csda_proton, self.particle.var_dict["trklen_csda_proton"]])
+                self.costheta_bkgfit_sp = np.concatenate([self.costheta_bkgfit_sp, self.particle.var_dict["beam_costh"]])
 
             Nevt_tot += Nbatch
             Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])
