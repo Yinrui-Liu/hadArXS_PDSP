@@ -22,11 +22,13 @@ class Processor:
         self.rng = np.random.RandomState(1)
 
         # output variables
+        self.true_frontface_energy = []
         self.true_initial_energy = []
         self.true_end_energy = []
         self.true_sigflag = []
         self.true_containing = []
         self.true_track_length = []
+        self.reco_frontface_energy = []
         self.reco_initial_energy = []
         self.reco_end_energy = []
         self.reco_sigflag = []
@@ -122,9 +124,15 @@ class Processor:
                     
                     # calculate true energies
                     trueKE = true_beam_traj_KE[ievt]
+                    true_KEff = -999.
                     true_Eini = -999.
                     true_Eend = -999.
                     start_idx = -1
+                    start_idx_ff = -1
+                    for ii in range(Ntrue_traj_pts):
+                        if trueZ[ii] > 0:
+                            start_idx_ff = ii
+                            break
                     for ii in range(Ntrue_traj_pts):
                         if trueZ[ii] > self.fidvol_low:
                             start_idx = ii
@@ -139,6 +147,10 @@ class Processor:
                             true_Eini = trueKE[temp]
                         else:
                             true_Eini = trueKE[start_idx]
+                        if start_idx_ff == traj_max:
+                            true_KEff = trueKE[temp]
+                        else:
+                            true_KEff = trueKE[start_idx_ff]
                     
                         if trueZ[-1] < parameters.fidvol_upp:
                             true_Eend = self.bb.KE_at_length(trueKE[temp], true_accum_len[traj_max] - true_accum_len[temp])
@@ -148,6 +160,7 @@ class Processor:
                                 idx -= 1
                             true_Eend = self.bb.KE_at_length(trueKE[idx], (true_accum_len[idx+1]-true_accum_len[idx])*(parameters.fidvol_upp-trueZ[idx])/(trueZ[idx+1]-trueZ[idx]) )
 
+                    self.true_frontface_energy.append(true_KEff)
                     self.true_initial_energy.append(true_Eini)
                     self.true_end_energy.append(true_Eend)
                     self.true_containing.append(trueZ[-1] < parameters.fidvol_upp)
@@ -245,6 +258,7 @@ class Processor:
             Nevt_truesig += len(mask_TrueSignal[mask_TrueSignal])
             Nevt_isPar += len(mask_SelectedPart[mask_SelectedPart])
             Nevt_selected += len(mask_FullSelection[mask_SelectedPart & mask_FullSelection])
+            self.reco_frontface_energy = np.concatenate([self.reco_frontface_energy, reco_frontfaceKE])
             self.mask_TrueSignal = np.concatenate([self.mask_TrueSignal, mask_TrueSignal])
             self.mask_SelectedPart = np.concatenate([self.mask_SelectedPart, mask_SelectedPart])
             self.mask_FullSelection = np.concatenate([self.mask_FullSelection, mask_FullSelection])
@@ -258,6 +272,7 @@ class Processor:
             print(f"{Nevt_tot} events processed.")
         
         print(Nevt_tot, Nevt_truesig, Nevt_isPar, Nevt_selected)
+        self.true_frontface_energy = np.array(self.true_frontface_energy)
         self.true_initial_energy = np.array(self.true_initial_energy)
         self.true_end_energy = np.array(self.true_end_energy)
         self.true_sigflag = np.array(self.true_sigflag, dtype=bool)
@@ -277,11 +292,13 @@ class Processor:
         outVars = {}
         outVars["isMC"] = self.isMC
         outVars["beamPDG"] = self.particle.pdg
+        outVars["true_frontface_energy"] = self.true_frontface_energy
         outVars["true_initial_energy"] = self.true_initial_energy
         outVars["true_end_energy"] = self.true_end_energy
         outVars["true_sigflag"] = self.true_sigflag
         outVars["true_containing"] = self.true_containing
         outVars["true_track_length"] = self.true_track_length
+        outVars["reco_frontface_energy"] = self.reco_frontface_energy
         outVars["reco_initial_energy"] = self.reco_initial_energy
         outVars["reco_end_energy"] = self.reco_end_energy
         outVars["reco_sigflag"] = self.reco_sigflag

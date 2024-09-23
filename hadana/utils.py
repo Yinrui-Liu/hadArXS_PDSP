@@ -88,6 +88,7 @@ def fit_gaus_hist(data, weights, x_range, initial_guesses):
 
     # Perform the minimization
     m.migrad()
+    m.hesse()
     return m
 def double_gaussian(x, mu1, sigma1, mu2, sigma2, alpha):
         return alpha * np.exp(-(x - mu1)**2 / (2 * sigma1**2)) / np.sqrt(2*np.pi) / sigma1 + (1-alpha) * np.exp(-(x - mu2)**2 / (2 * sigma2**2)) / np.sqrt(2*np.pi) / sigma2
@@ -196,6 +197,22 @@ def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, mc2data_
     return sig_hist, sig_hist_err
 
 # def bkg_sideband_fit():
+
+def P_to_KE(P, mass):
+    return np.sqrt(P*P + mass*mass) - mass
+def KE_to_P(KE, mass):
+    return np.sqrt(KE*KE + 2*KE*mass)
+def get_mass_from_pdg(pdg):
+    if abs(pdg) == 13:  # muon
+        return 105.6583755
+    if abs(pdg) == 211:  # pion
+        return 139.57039
+    if abs(pdg) == 321:  # kaon
+        return 493.677
+    if abs(pdg) == 2212:  # proton
+        return 938.27208816
+    else:
+        print(f"Unknown pdg code {pdg}")
 
 if __name__ == "__main__":
     with open('processedVars.pkl', 'rb') as procfile:
