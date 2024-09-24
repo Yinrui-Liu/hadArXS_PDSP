@@ -18,6 +18,7 @@ inc_sys_MCXS = False
 inc_sys_reweiP = False
 inc_sys_Eloss = False
 inc_sys_AltSCE = False
+inc_sys_const = False
 niter = 47 # 47 for pion data, 16 for proton data
 save_xs_for_sys = False
 sysmode = 'Eloss'
@@ -205,7 +206,8 @@ unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unf
 ### calculate cross section
 unfd_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
 unfd_3N_Vcov = slicing.get_Cov_3N_from_3SID(unfd_3SID_Vcov, Ntruebins)
-unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, BetheBloch(beamPDG))
+bb = BetheBloch(beamPDG)
+unfd_XS, unfd_XS_Vcov = slicing.calculate_XS_Cov_from_3N(unfd_Ninc, unfd_Nend, unfd_Nint_ex, unfd_3N_Vcov, true_bins, bb)
 systxtfile = f'syscovtxt/sys_{sysmode}_unfd_{beamPDG}.txt'
 if use_external_cov:
     unfd_list = np.transpose(np.loadtxt(systxtfile))
@@ -260,16 +262,29 @@ else:
         order = [0,2,1]
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
         plt.savefig(f"plots/cross_section_{beamPDG}.pdf")
-    elif inc_sys_AltSCE: # list copied from results using AltSCE
-        plt.errorbar(XS_x, np.array([695.3743452575444, 605.2876906308809, 682.4889087910665, 607.9142803951634, 683.5686614053205, 567.6110260445066, 733.2202923432238, 560.353475275872])[::-1], np.array([50.83661577788303, 37.2799923711077, 32.31978472975942, 27.363311518973852, 28.287203736824203, 31.010980609972513, 48.736916840567304, 62.17338725560848])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # pionp
-        #plt.errorbar(XS_x, np.array([701.2151284670073, 950.5339363423396, 653.4133084850553, 526.7722768717589, 501.3438129830147, 533.4376321697075, 503.6115947145777, 541.3808652623917, 753.7580326408548, 419.64607837824633])[::-1], np.array([85.62732548607192, 106.41692645096067, 36.39309483426517, 33.4415705888185, 24.18600414616621, 22.986900015686818, 25.497775866967064, 35.31580867006177, 108.43390486921116, 250.62438179586113])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # proton
-        plt.legend()
-        plt.savefig(f"plots/XS_sysSCE_{beamPDG}.pdf")
     else:
         plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt="k.", label="Measured cross section")
         plt.ylim(bottom=0)
         cov_for_plot = unfd_XS_Vcov[1:-1, 1:-1]
         plt.legend()
+    if inc_sys_AltSCE: # list copied from results using AltSCE
+        plt.errorbar(XS_x, np.array([695.3743452575444, 605.2876906308809, 682.4889087910665, 607.9142803951634, 683.5686614053205, 567.6110260445066, 733.2202923432238, 560.353475275872])[::-1], np.array([50.83661577788303, 37.2799923711077, 32.31978472975942, 27.363311518973852, 28.287203736824203, 31.010980609972513, 48.736916840567304, 62.17338725560848])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # pionp
+        #plt.errorbar(XS_x, np.array([701.2151284670073, 950.5339363423396, 653.4133084850553, 526.7722768717589, 501.3438129830147, 533.4376321697075, 503.6115947145777, 541.3808652623917, 753.7580326408548, 419.64607837824633])[::-1], np.array([85.62732548607192, 106.41692645096067, 36.39309483426517, 33.4415705888185, 24.18600414616621, 22.986900015686818, 25.497775866967064, 35.31580867006177, 108.43390486921116, 250.62438179586113])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # proton
+        plt.legend()
+        plt.savefig(f"plots/XS_sysSCE_{beamPDG}.pdf")
+    if inc_sys_const:
+        import scipy.integrate as integrate
+        correction = np.ones_like(XS_x)
+        for ibin in range(len(XS_x)):
+            dEdx_center = bb.mean_dEdx(XS_x[ibin])
+            dEdx_inte, _ = integrate.quad(bb.mean_dEdx, XS_x[ibin] - XS_xerr[ibin], XS_x[ibin] + XS_xerr[ibin])
+            dEdx_inte /= (2*XS_xerr[ibin])
+            correction[ibin] = dEdx_inte/dEdx_center
+            print(XS_x[ibin], dEdx_center, dEdx_inte, correction[ibin])
+        print((XS_y*abs(correction-1))[::-1].tolist())
+        plt.errorbar(XS_x, XS_y*correction, XS_yerr*correction, XS_xerr, fmt="b.", label="Measured cross section (corrected dE/dx value)")
+        plt.legend()
+        plt.savefig(f"plots/XS_sysconst_{beamPDG}.pdf")
     plt.show()
 
     plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(cov_for_plot), cmap="RdBu_r", vmin=-1, vmax=1) # true_bins is defined as reversed but on this plot it is increasing order, which is correct

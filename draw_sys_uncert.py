@@ -1,7 +1,7 @@
 from hadana.packages import *
 import hadana.parameters as parameters
 
-beamPDG = 2212
+beamPDG = 211
 # copy arrays from the output uncertainty of dataXS_sys.py
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -21,7 +21,9 @@ if beamPDG == 211:
 
     sys_SCE = np.array([0, 19.899637548224746, 9.831537758922877, 19.289352459702855, 16.218207745826703, 36.30653231021586, 3.8789110001945346, 38.822604035627364, 11.29462574327863, 0])
 
-    sys_tot = np.sqrt(sys_bkg*sys_bkg + sys_MCstat*sys_MCstat + sys_MCXS*sys_MCXS + sys_reweiP*sys_reweiP + sys_Eloss*sys_Eloss + sys_SCE*sys_SCE)
+    sys_const = np.array([0, 0.013376833480414243, 0.0055076375808817265, 0.0022295166869498095, 0.00020931403735132, 0.001717459925446205, 0.0023354630773251917, 0.0034329854532843115, 0.0029771797827927884, 0])
+
+    sys_tot = np.sqrt(sys_bkg*sys_bkg + sys_MCstat*sys_MCstat + sys_MCXS*sys_MCXS + sys_reweiP*sys_reweiP + sys_Eloss*sys_Eloss + sys_SCE*sys_SCE + sys_const*sys_const)
 
 elif beamPDG == 2212:
     true_bins = parameters.true_bins_proton
@@ -41,7 +43,9 @@ elif beamPDG == 2212:
 
     sys_SCE = np.array([0, 258.1286850269041, 114.07328617963128, 29.720813780313733, 140.4832074975052, 97.29055798039781, 37.455027518371026, 7.939756969605185, 32.01476549570259, 52.415278322147515, 123.042696276497, 0])
 
-    sys_tot = np.sqrt(sys_bkg*sys_bkg + sys_MCstat*sys_MCstat + sys_MCXS*sys_MCXS + sys_reweiP*sys_reweiP + sys_Eloss*sys_Eloss + sys_SCE*sys_SCE)
+    sys_const = np.array([0, 101.4410391527133, 19.446303750598105, 4.545827898672161, 6.022354780967803, 2.5762371458993645, 1.3959552382129852, 0.7638065130700469, 0.5965092417870606, 0.5174558123048176, 0.16107472133148168, 0])
+
+    sys_tot = np.sqrt(sys_bkg*sys_bkg + sys_MCstat*sys_MCstat + sys_MCXS*sys_MCXS + sys_reweiP*sys_reweiP + sys_Eloss*sys_Eloss + sys_SCE*sys_SCE + sys_const*sys_const)
 
 
 xrange = np.concatenate([[true_bins[1]], true_bins[1:-1]])[::-1]
@@ -54,6 +58,7 @@ plt.step(xrange, sys_MCXS, label="Systematic: cross-section model")
 plt.step(xrange, sys_reweiP, label="Systematic: momentum reweighting")
 plt.step(xrange, sys_Eloss, label="Systematic: upstream energy loss")
 plt.step(xrange, sys_SCE, label="Systematic: space-charge correction")
+plt.step(xrange, sys_const, label="Systematic: dE/dx values")
 plt.xlabel("Kinetic energy [MeV]")
 plt.ylabel("Uncertainty on cross section [mb]")
 plt.ylim([0, None])
