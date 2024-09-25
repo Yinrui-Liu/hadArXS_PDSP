@@ -133,7 +133,7 @@ def get_Cov_3N_from_3SID(f_3SID_Vcov, Nbins):
 
 def calculate_XS_Cov_from_3N(f_Ninc, f_Nend, f_Nint_ex, f_3N_Vcov, KEbins, bb):
     NA = 6.02214076e23 # Avogadro constant (mol^{-1})
-    rho_tar = 1.4 # density (g/cm^3)
+    rho_tar = 1.396 # density (g/cm^3) # 1.401
     M_tar = 39.95 # molar mass (g/mol)
     n_tar = rho_tar*NA/M_tar # number density (cm^{-3})
 

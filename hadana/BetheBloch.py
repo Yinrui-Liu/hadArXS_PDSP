@@ -55,10 +55,10 @@ class BetheBloch:
 
     def mean_dEdx(self, KE):
         K = 0.307
-        rho = 1.396
+        rho = 1.396 # 1.401
         Z = 18
         A = 39.948
-        I = 10.5 * 18 * 1e-6  # MeV
+        I = 10.5 * 18 * 1e-6  # MeV # 205
         me = 0.511  # MeV
 
         gamma = (KE + self.mass) / self.mass

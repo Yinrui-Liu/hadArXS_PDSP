@@ -10,7 +10,7 @@ beamPDG = 211
 datafilename = "processed_files/procVars_pidata.pkl"
 MCfilename = "processed_files/procVars_piMC.pkl"
 # types of systematic uncertainties to include
-bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
+bkg_scale = [0.93, 1, 1.72, 1.43, 0.93, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.13, 0.11, 0.12, 0, 0]  proton [0, 0, 0, 0, 0, 0, 0]
 inc_sys_bkg = False
 inc_sys_MCstat = False
@@ -281,8 +281,14 @@ else:
             dEdx_inte /= (2*XS_xerr[ibin])
             correction[ibin] = dEdx_inte/dEdx_center
             print(XS_x[ibin], dEdx_center, dEdx_inte, correction[ibin])
-        print((XS_y*abs(correction-1))[::-1].tolist())
-        plt.errorbar(XS_x, XS_y*correction, XS_yerr*correction, XS_xerr, fmt="b.", label="Measured cross section (corrected dE/dx value)")
+        print(XS_y.tolist())
+        #print((XS_y*correction).tolist())
+        plt.plot(XS_x, np.array([550.6320840584749, 696.3873664975896, 573.1274440276372, 649.1167483761794, 625.9208333792164, 665.0998415930583, 597.1623309604164, 717.3234784585079]), "g*", label=r"Measured cross section ($\rho=1.401$ g/cm$^3$)")
+        plt.plot(XS_x, np.array([546.6390778245303, 691.3016054181226, 568.9101108675923, 644.301321546892, 621.2366409803586, 660.0749630361045, 592.6037836255866, 711.7851149154302]), "b*", label=r"Measured cross section ($I=205$ eV)")
+        plt.plot(XS_x, np.array([550.6290983480909, 696.3839236755018, 573.1251018726887, 649.1150259951654, 625.9206234654254, 665.1020774980451, 597.1678543791938, 717.3368936210238]), "m*", label="Measured cross section (corrected mean dE/dx value)")
+        #plt.plot(XS_x, np.array([297.4532485261097, 703.352332411311, 575.0385981814699, 497.09210089037356, 572.5284552745775, 600.3496556939666, 669.1673912012678, 625.4795792167895, 1067.657673016303, 962.0926496357279]), "g*", label=r"Measured cross section ($\rho=1.401$ g/cm$^3$)")
+        #plt.plot(XS_x, np.array([294.49599120133524, 696.263967831718, 569.1526249834199, 491.91024805191404, 566.4258641528584, 593.7642729319056, 661.5251423419005, 617.9736497787484, 1054.042970306329, 948.1934165046176]), "b*", label=r"Measured cross section ($I=205$ eV)")
+        #plt.plot(XS_x, np.array([297.61478477959395, 703.8712709050263, 575.6368166187922, 497.85809596078764, 573.9284103845331, 602.9332746081923, 675.2070020131264, 630.0384324103001, 1087.1596968349545, 1063.8243507917437]), "m*", label="Measured cross section (corrected mean dE/dx value)")
         plt.legend()
         plt.savefig(f"plots/XS_sysconst_{beamPDG}.pdf")
     plt.show()
