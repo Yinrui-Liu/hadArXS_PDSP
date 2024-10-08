@@ -7,10 +7,10 @@ import hadana.MC_reweight as reweight
 
 
 beamPDG = 211
-datafilename = "processed_files/procVars_pidata.pkl"
-MCfilename = "processed_files/procVars_piMC.pkl"
+datafilename = "processed_files/procVars_piMC_hf.pkl"
+MCfilename = "processed_files/procVars_piMC_hf.pkl"
 # types of systematic uncertainties to include
-bkg_scale = [0.93, 1, 1.72, 1.43, 0.93, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
+bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.13, 0.11, 0.12, 0, 0]  proton [0, 0, 0, 0, 0, 0, 0]
 inc_sys_bkg = False
 inc_sys_MCstat = False
@@ -24,7 +24,8 @@ save_xs_for_sys = False
 sysmode = 'Eloss'
 use_external_cov = False
 use_total_cov = False
-
+use_1D_unfolding = True
+plot_energy_hists = True
 
 if beamPDG == 211:
     true_bins = parameters.true_bins_pionp
@@ -46,6 +47,7 @@ reco_sigflag = processedVars["reco_sigflag"]
 reco_containing = processedVars["reco_containing"]
 particle_type = processedVars["particle_type"]
 weight_dt = processedVars["reweight"]
+#weight_dt = np.ones_like(weight_dt)
 
 
 ### selection
@@ -82,6 +84,7 @@ reco_sigflag_mc = processedVars_mc["reco_sigflag"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
+#weight_mc = np.ones_like(weight_mc)
 if inc_sys_Eloss:
     if beamPDG == 211:
         rdm_Eloss_shift = np.random.normal(0, 2.0) # 2.0 MeV constant error for pion upstream E loss
@@ -188,6 +191,44 @@ else:
     response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], mc_reco_weight)
     print(eff1D, response_matrix,sep='\n')
 
+if use_1D_unfolding:
+    import ROOT
+    true_SIDini_sel = np.array(mc_true_SIDini)[pass_selection_mc]
+    true_Nini, _ = np.histogram(mc_true_SIDini, bins=range(-1, Ntruebins), weights=mc_true_weight)
+    true_Nini_sel, _ = np.histogram(true_SIDini_sel, bins=range(-1, Ntruebins), weights=mc_reco_weight)
+    eff_Nini = utils.safe_divide(true_Nini_sel, true_Nini)
+    response_Nini = ROOT.RooUnfoldResponse(Nmeasbins, 0, Nmeasbins, Ntruebins, 0, Ntruebins) # 0 is for null value
+    for ievt in range(len(mc_meas_SID3D)):
+        response_Nini.Fill(mc_meas_SIDini[ievt]+1, true_SIDini_sel[ievt]+1, mc_reco_weight[ievt])
+    response_matrix_Nini = np.zeros([Ntruebins, Nmeasbins])
+    for ibin in range(Ntruebins):
+        for jbin in range(Nmeasbins):
+            response_matrix_Nini[ibin, jbin] = response_Nini.Hresponse().GetBinContent(jbin+1, ibin+1)
+
+    true_SIDend_sel = np.array(mc_true_SIDend)[pass_selection_mc]
+    true_Nend, _ = np.histogram(mc_true_SIDend, bins=range(-1, Ntruebins), weights=mc_true_weight)
+    true_Nend_sel, _ = np.histogram(true_SIDend_sel, bins=range(-1, Ntruebins), weights=mc_reco_weight)
+    eff_Nend = utils.safe_divide(true_Nend_sel, true_Nend)
+    response_Nend = ROOT.RooUnfoldResponse(Nmeasbins, 0, Nmeasbins, Ntruebins, 0, Ntruebins) # 0 is for null value
+    for ievt in range(len(mc_meas_SID3D)):
+        response_Nend.Fill(mc_meas_SIDend[ievt]+1, true_SIDend_sel[ievt]+1, mc_reco_weight[ievt])
+    response_matrix_Nend = np.zeros([Ntruebins, Nmeasbins])
+    for ibin in range(Ntruebins):
+        for jbin in range(Nmeasbins):
+            response_matrix_Nend[ibin, jbin] = response_Nend.Hresponse().GetBinContent(jbin+1, ibin+1)
+
+    true_SIDint_sel = np.array(mc_true_SIDint_ex)[pass_selection_mc]
+    true_Nint, _ = np.histogram(mc_true_SIDint_ex, bins=range(-1, Ntruebins), weights=mc_true_weight)
+    true_Nint_sel, _ = np.histogram(true_SIDint_sel, bins=range(-1, Ntruebins), weights=mc_reco_weight)
+    eff_Nint = utils.safe_divide(true_Nint_sel, true_Nint)
+    response_Nint = ROOT.RooUnfoldResponse(Nmeasbins, 0, Nmeasbins, Ntruebins, 0, Ntruebins) # 0 is for null value
+    for ievt in range(len(mc_meas_SID3D)):
+        response_Nint.Fill(mc_meas_SIDint_ex[ievt]+1, true_SIDint_sel[ievt]+1, mc_reco_weight[ievt])
+    response_matrix_Nint = np.zeros([Ntruebins, Nmeasbins])
+    for ibin in range(Ntruebins):
+        for jbin in range(Nmeasbins):
+            response_matrix_Nint[ibin, jbin] = response_Nint.Hresponse().GetBinContent(jbin+1, ibin+1)
+
 print("### unfolding")
 sig_meas_N1D, sig_meas_N1D_err = multiD.map_data_to_MC_bins(sig_meas_N3D, sig_meas_N3D_err, meas_3D1D_map)
 sig_meas_V1D = np.diag(sig_meas_N1D_err*sig_meas_N1D_err)
@@ -202,6 +243,30 @@ else:
 unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc = multiD.get_unfold_histograms(unfd_N3D, Ntruebins)
 #print(unfd_Nini, unfd_Nend, unfd_Nint_ex, unfd_Ninc, sep='\n')
 
+if use_1D_unfolding:
+    sig_meas_N3D_real3D = np.reshape(sig_meas_N3D, [Nmeasbins, Nmeasbins, Nmeasbins])
+    sig_meas_Nini = sig_meas_N3D_real3D.sum((0,1))
+    sig_meas_Nend = sig_meas_N3D_real3D.sum((0,2))
+    sig_meas_Nint_ex = sig_meas_N3D_real3D.sum((1,2))
+    unfd_Nini, unfd_cov_Nini = multiD.unfolding(sig_meas_Nini, np.diag(sig_meas_Nini), response_Nini, niter=4)
+    unfd_Nend, unfd_cov_Nend = multiD.unfolding(sig_meas_Nend, np.diag(sig_meas_Nend), response_Nend, niter=4)
+    unfd_Nint_ex, unfd_cov_Nint_ex = multiD.unfolding(sig_meas_Nint_ex, np.diag(sig_meas_Nint_ex), response_Nint, niter=4)
+    unfd_Nini = utils.safe_divide(unfd_Nini, eff_Nini)[1:]
+    unfd_Nend = utils.safe_divide(unfd_Nend, eff_Nend)[1:]
+    unfd_Nint_ex = utils.safe_divide(unfd_Nint_ex, eff_Nint)[1:]
+    unfd_Ninc_1 = np.zeros_like(unfd_Nini)
+    unfd_Ninc_2 = np.zeros_like(unfd_Nini)
+    for ibin in range(Ntruebins-1):
+        ## two equivalent way to calculate the incident histogram
+        for itmp in range(0, ibin+1):
+            unfd_Ninc_1[ibin] += unfd_Nini[itmp]
+        for itmp in range(0, ibin):
+            unfd_Ninc_1[ibin] -= unfd_Nend[itmp]
+        for itmp in range(ibin, Ntruebins-1):
+            unfd_Ninc_2[ibin] += unfd_Nend[itmp]
+        for itmp in range(ibin+1, Ntruebins-1):
+            unfd_Ninc_2[ibin] -= unfd_Nini[itmp]
+    unfd_Ninc = unfd_Ninc_1
 
 ### calculate cross section
 unfd_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(unfd_N3D_Vcov, Ntruebins)
@@ -222,8 +287,172 @@ elif use_total_cov:
     for sysmd in sysmode_list:
         unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.loadtxt(f'syscovtxt/sys_{sysmd}_Cov_{beamPDG}.txt')
     unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.diag(np.power([0, 19.899637548224746, 9.831537758922877, 19.289352459702855, 16.218207745826703, 36.30653231021586, 3.8789110001945346, 38.822604035627364, 11.29462574327863, 0], 2)[::-1]) # sys:SCE (list copied from draw_sys_uncert.py)
+    #unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.diag(np.power([0, 258.1286850269041, 114.07328617963128, 29.720813780313733, 140.4832074975052, 97.29055798039781, 37.455027518371026, 7.939756969605185, 32.01476549570259, 52.415278322147515, 123.042696276497, 0], 2)[::-1]) # sys:SCE (list copied from draw_sys_uncert.py)
     print("Use total covariance matrix")
 print(f"Energy bin edges \t{true_bins[::-1]}\nMeasured cross section \t{unfd_XS[::-1].tolist()}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))[::-1].tolist()}")
+
+if plot_energy_hists:
+    from matplotlib.patches import Patch
+    Nmeasbins, Nmeasbins_3D, meas_cKE, meas_wKE = utils.set_bins(meas_bins)
+
+    unfd_Nini_err = np.sqrt(np.diagonal(unfd_3SID_Vcov)[1:Ntruebins])
+    unfd_Ninc_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[:Ntruebins-1])
+    unfd_Nend_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[Ntruebins-1:2*(Ntruebins-1)])
+    unfd_Nint_ex_err = np.sqrt(np.diagonal(unfd_3N_Vcov)[2*(Ntruebins-1):])
+    
+    meas_Nini, meas_Nend, meas_Nint_ex, meas_Ninc = multiD.get_unfold_histograms(sig_meas_N3D, Nmeasbins)
+    meas_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(np.diag(sig_meas_N3D_err*sig_meas_N3D_err), Nmeasbins)
+    meas_3N_Vcov = slicing.get_Cov_3N_from_3SID(meas_3SID_Vcov, Nmeasbins)
+    meas_XS, meas_XS_Vcov = slicing.calculate_XS_Cov_from_3N(meas_Ninc, meas_Nend, meas_Nint_ex, meas_3N_Vcov, meas_bins, bb)
+    meas_Nini_err = np.sqrt(np.diagonal(meas_3SID_Vcov)[1:Nmeasbins])
+    meas_Ninc_err = np.sqrt(np.diagonal(meas_3N_Vcov)[:Nmeasbins-1])
+    meas_Nend_err = np.sqrt(np.diagonal(meas_3N_Vcov)[Nmeasbins-1:2*(Nmeasbins-1)])
+    meas_Nint_ex_err = np.sqrt(np.diagonal(meas_3N_Vcov)[2*(Nmeasbins-1):])
+
+    mctrue_Nini, mctrue_Nend, mctrue_Nint_ex, mctrue_Ninc = multiD.get_unfold_histograms(mc_true_N3D, Ntruebins)
+    mctrue_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(mc_true_N3D_Vcov, Ntruebins)
+    mctrue_3N_Vcov = slicing.get_Cov_3N_from_3SID(mctrue_3SID_Vcov, Ntruebins)
+    mctrue_XS, mctrue_XS_Vcov = slicing.calculate_XS_Cov_from_3N(mctrue_Ninc, mctrue_Nend, mctrue_Nint_ex, mctrue_3N_Vcov, true_bins, bb)
+    mctrue_Nini_err = np.sqrt(np.diagonal(mctrue_3SID_Vcov)[1:Ntruebins])
+    mctrue_Ninc_err = np.sqrt(np.diagonal(mctrue_3N_Vcov)[:Ntruebins-1])
+    mctrue_Nend_err = np.sqrt(np.diagonal(mctrue_3N_Vcov)[Ntruebins-1:2*(Ntruebins-1)])
+    mctrue_Nint_ex_err = np.sqrt(np.diagonal(mctrue_3N_Vcov)[2*(Ntruebins-1):])
+
+    mcmeas_Nini, mcmeas_Nend, mcmeas_Nint_ex, mcmeas_Ninc = multiD.get_unfold_histograms(mc_meas_N3D, Nmeasbins)
+    mcmeas_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(mc_meas_N3D_Vcov, Nmeasbins)
+    mcmeas_3N_Vcov = slicing.get_Cov_3N_from_3SID(mcmeas_3SID_Vcov, Nmeasbins)
+    mcmeas_XS, mcmeas_XS_Vcov = slicing.calculate_XS_Cov_from_3N(mcmeas_Ninc, mcmeas_Nend, mcmeas_Nint_ex, mcmeas_3N_Vcov, meas_bins, bb)
+    mcmeas_Nini_err = np.sqrt(np.diagonal(mcmeas_3SID_Vcov)[1:Nmeasbins])
+    mcmeas_Ninc_err = np.sqrt(np.diagonal(mcmeas_3N_Vcov)[:Nmeasbins-1])
+    mcmeas_Nend_err = np.sqrt(np.diagonal(mcmeas_3N_Vcov)[Nmeasbins-1:2*(Nmeasbins-1)])
+    mcmeas_Nint_ex_err = np.sqrt(np.diagonal(mcmeas_3N_Vcov)[2*(Nmeasbins-1):])
+
+    fig, axs = plt.subplots(2, 3, figsize=[15, 8])
+    #plt.subplots_adjust(left=0.08, right=0.98, top=0.96, bottom=0.06, hspace=0.2, wspace=0.2)
+    # plot Nini
+    axs[0, 0].errorbar(meas_cKE, meas_Nini, meas_Nini_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[0, 0].errorbar(true_cKE, unfd_Nini, unfd_Nini_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Nini*sig_MC_scale
+    line_t, = axs[0, 0].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[0, 0].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Nini_err, 2), np.repeat(histy_center+mctrue_Nini_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Nini*sig_MC_scale
+    line_m, = axs[0, 0].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[0, 0].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Nini_err, 2), np.repeat(histy_center+mcmeas_Nini_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[0, 0].set_title(r"Initial histogram $N_{\rm ini}$")
+    axs[0, 0].set_xlabel("Kinetic energy (MeV)")
+    axs[0, 0].set_ylabel("Counts")
+    axs[0, 0].set_xlim([true_bins[-1], true_bins[0]])
+    axs[0, 0].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[0, 0].legend(handles, labels)
+
+    # plot Nend
+    axs[0, 1].errorbar(meas_cKE, meas_Nend, meas_Nend_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[0, 1].errorbar(true_cKE, unfd_Nend, unfd_Nend_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Nend*sig_MC_scale
+    line_t, = axs[0, 1].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[0, 1].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Nend_err, 2), np.repeat(histy_center+mctrue_Nend_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Nend*sig_MC_scale
+    line_m, = axs[0, 1].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[0, 1].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Nend_err, 2), np.repeat(histy_center+mcmeas_Nend_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[0, 1].set_title(r"End histogram $N_{\rm end}$")
+    axs[0, 1].set_xlabel("Kinetic energy (MeV)")
+    axs[0, 1].set_ylabel("Counts")
+    axs[0, 1].set_xlim([true_bins[-1], true_bins[0]])
+    axs[0, 1].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[0, 1].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[0, 1].legend(handles, labels)
+
+    # plot Nint_ex
+    axs[0, 2].errorbar(meas_cKE, meas_Nint_ex, meas_Nint_ex_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[0, 2].errorbar(true_cKE, unfd_Nint_ex, unfd_Nint_ex_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Nint_ex*sig_MC_scale
+    line_t, = axs[0, 2].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[0, 2].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Nint_ex_err, 2), np.repeat(histy_center+mctrue_Nint_ex_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Nint_ex*sig_MC_scale
+    line_m, = axs[0, 2].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[0, 2].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Nint_ex_err, 2), np.repeat(histy_center+mcmeas_Nint_ex_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[0, 2].set_title(r"Interaction histogram $N_{\rm int_{ex}}$")
+    axs[0, 2].set_xlabel("Kinetic energy (MeV)")
+    axs[0, 2].set_ylabel("Counts")
+    axs[0, 2].set_xlim([true_bins[-1], true_bins[0]])
+    axs[0, 2].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[0, 2].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[0, 2].legend(handles, labels)
+
+    # plot Ninc
+    unfd_Ninc = unfd_Ninc_1
+    axs[1, 0].errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[1, 0].errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Ninc*sig_MC_scale
+    line_t, = axs[1, 0].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[1, 0].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Ninc_err, 2), np.repeat(histy_center+mctrue_Ninc_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Ninc*sig_MC_scale
+    line_m, = axs[1, 0].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[1, 0].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Ninc_err, 2), np.repeat(histy_center+mcmeas_Ninc_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[1, 0].set_title(r"Incident histogram $N_{\rm inc}$")
+    axs[1, 0].set_xlabel("Kinetic energy (MeV)")
+    axs[1, 0].set_ylabel("Counts")
+    axs[1, 0].set_xlim([true_bins[-1], true_bins[0]])
+    axs[1, 0].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[1, 0].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[1, 0].legend(handles, labels)
+    unfd_Ninc = unfd_Ninc_2
+    axs[1, 1].errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, color="r", fmt=".", label="Data measured")
+    axs[1, 1].errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, color="b", fmt=".", label="Data unfolded")
+    histy_center = mctrue_Ninc*sig_MC_scale
+    line_t, = axs[1, 1].step(np.concatenate([true_bins, [true_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "b-", alpha=0.8, lw=1) # MC true
+    axs[1, 1].fill_between(np.repeat(true_bins, 2)[1:-1], np.repeat(histy_center-mctrue_Ninc_err, 2), np.repeat(histy_center+mctrue_Ninc_err, 2), color='blue', alpha=0.3, edgecolor='none')
+    histy_center = mcmeas_Ninc*sig_MC_scale
+    line_m, = axs[1, 1].step(np.concatenate([meas_bins, [meas_bins[-1]]]), np.concatenate([[0], histy_center, [0]]), "r-", alpha=0.8, lw=1) # MC reco
+    axs[1, 1].fill_between(np.repeat(meas_bins, 2)[1:-1], np.repeat(histy_center-mcmeas_Ninc_err, 2), np.repeat(histy_center+mcmeas_Ninc_err, 2), color='red', alpha=0.3, edgecolor='none')
+    axs[1, 1].set_title(r"Incident histogram $N_{\rm inc}$")
+    axs[1, 1].set_xlabel("Kinetic energy (MeV)")
+    axs[1, 1].set_ylabel("Counts")
+    axs[1, 1].set_xlim([true_bins[-1], true_bins[0]])
+    axs[1, 1].set_ylim(bottom=0)
+    # customize legend element
+    le_t = [line_t, Patch(facecolor='blue', edgecolor='none', alpha=0.3)]
+    le_m = [line_m, Patch(facecolor='red', edgecolor='none', alpha=0.3)]
+    handles, labels = axs[1, 1].get_legend_handles_labels()
+    handles.append((le_t[0], le_t[1]))
+    labels.append("MC true")
+    handles.append((le_m[0], le_m[1]))
+    labels.append("MC measured")
+    axs[1, 1].legend(handles, labels)
+
+    axs[1, 2].set_visible(False)
+    plt.tight_layout()
+    plt.savefig(f"plots/Ehists_1D{beamPDG}.pdf")
+    plt.show()
 
 if save_xs_for_sys:
     with open(systxtfile, "ab") as f:
@@ -267,6 +496,7 @@ else:
         plt.ylim(bottom=0)
         cov_for_plot = unfd_XS_Vcov[1:-1, 1:-1]
         plt.legend()
+        #plt.savefig(f"plots/cross_section_{beamPDG}_1D1.pdf")
     if inc_sys_AltSCE: # list copied from results using AltSCE
         plt.errorbar(XS_x, np.array([695.3743452575444, 605.2876906308809, 682.4889087910665, 607.9142803951634, 683.5686614053205, 567.6110260445066, 733.2202923432238, 560.353475275872])[::-1], np.array([50.83661577788303, 37.2799923711077, 32.31978472975942, 27.363311518973852, 28.287203736824203, 31.010980609972513, 48.736916840567304, 62.17338725560848])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # pionp
         #plt.errorbar(XS_x, np.array([701.2151284670073, 950.5339363423396, 653.4133084850553, 526.7722768717589, 501.3438129830147, 533.4376321697075, 503.6115947145777, 541.3808652623917, 753.7580326408548, 419.64607837824633])[::-1], np.array([85.62732548607192, 106.41692645096067, 36.39309483426517, 33.4415705888185, 24.18600414616621, 22.986900015686818, 25.497775866967064, 35.31580867006177, 108.43390486921116, 250.62438179586113])[::-1], XS_xerr, fmt="b.", label="Measured cross section (alternative SCE map)") # proton
@@ -302,4 +532,5 @@ else:
     plt.colorbar()
     if use_total_cov and not use_external_cov:
         plt.savefig(f"plots/XS_correlation_{beamPDG}.pdf")
+    #plt.savefig(f"plots/XS_correlation_{beamPDG}_1D1.pdf")
     plt.show()
