@@ -43,6 +43,7 @@ variables_to_load = [
     "true_beam_traj_Z",
     "reco_reconstructable_beam_event",
     "true_beam_PDG",
+    "true_beam_daughter_PDG",
     "beam_inst_trigger",
     "beam_inst_nMomenta",
     "beam_inst_nTracks",

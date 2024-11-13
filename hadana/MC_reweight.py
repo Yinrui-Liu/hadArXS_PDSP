@@ -1,4 +1,5 @@
 from .packages import *
+import hadana.utils as utils
 
 def cal_bkg_reweight(procVars):
     true_beam_PDG = procVars["true_beam_PDG"]
@@ -50,7 +51,7 @@ def cal_momentum_reweight(procVars, rdm_radius=0, rdm_angle=0):
 
     deno = np.exp(-np.power((true_beam_startP - mom_mu0) / mom_sigma0, 2) / 2)
     numo = np.exp(-np.power((true_beam_startP - mom_mu) / mom_sigma, 2) / 2)
-    weight = np.where(true_beam_PDG == procVars["beamPDG"], weight * numo/deno, weight)
+    weight = np.where(true_beam_PDG == procVars["beamPDG"], weight * utils.safe_divide(numo, deno), weight)
     wlimit = 3. # avoid large weight
     weight = np.clip(weight, 1/wlimit, wlimit)
 

@@ -33,6 +33,7 @@ class Processor:
         self.reco_containing = []
         self.reco_track_length = []
         self.true_beam_PDG = np.array([])
+        self.true_beam_daughter_PDG = np.array([])
         self.mask_TrueSignal = np.array([])
         self.mask_SelectedPart = np.array([])
         self.mask_FullSelection = np.array([])
@@ -86,6 +87,7 @@ class Processor:
             reco_beam_true_byE_origin = evt["reco_beam_true_byE_origin"]
             reco_beam_true_byE_PDG = evt["reco_beam_true_byE_PDG"]
             true_beam_PDG = evt["true_beam_PDG"]
+            true_beam_daughter_PDG = evt["true_beam_daughter_PDG"]
             true_beam_endProcess = evt["true_beam_endProcess"]
 
             g4rw_full_grid_piplus_coeffs = evt["g4rw_full_grid_piplus_coeffs"]
@@ -205,8 +207,10 @@ class Processor:
                 self.particle_type.append(par_type)
 
                 inclusive = True
+                # Can implement the function for implementing the interaction identification from
+                # calc_true to here
                 if self.particle.pdg == 211:
-                    if inclusive and true_beam_endProcess[ievt]=="pi+Inelastic":
+                    if inclusive and true_beam_endProcess[ievt]=="pi+Inelastic": #modify this line, change inclusive to selected_ex selection
                         true_flag = 1
                     else:
                         true_flag = 0
@@ -249,6 +253,7 @@ class Processor:
             self.mask_SelectedPart = np.concatenate([self.mask_SelectedPart, mask_SelectedPart])
             self.mask_FullSelection = np.concatenate([self.mask_FullSelection, mask_FullSelection])
             self.true_beam_PDG = np.concatenate([self.true_beam_PDG, true_beam_PDG])
+            self.true_beam_daughter_PDG = np.concatenate([self.true_beam_daughter_PDG, true_beam_daughter_PDG])
             self.g4rw_full_grid_piplus_coeffs = np.concatenate([self.g4rw_full_grid_piplus_coeffs, g4rw_full_grid_piplus_coeffs])
             self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
             self.true_beam_startP = np.concatenate([self.true_beam_startP, true_beam_startP])
@@ -288,6 +293,7 @@ class Processor:
         outVars["reco_containing"] = self.reco_containing
         outVars["reco_track_length"] = self.reco_track_length
         outVars["true_beam_PDG"] = self.true_beam_PDG
+        outVars["true_beam_daughter_PDG"] = self.true_beam_daughter_PDG
         outVars["mask_TrueSignal"] = self.mask_TrueSignal
         outVars["mask_SelectedPart"] = self.mask_SelectedPart
         outVars["mask_FullSelection"] = self.mask_FullSelection

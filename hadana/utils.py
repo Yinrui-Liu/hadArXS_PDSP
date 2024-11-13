@@ -1,5 +1,7 @@
 import numpy as np
 import iminuit
+import pickle
+import matplotlib as plt
 
 def GetStoppingProtonChi2PID(trkdedx, trkres, dedx_range_pro):
     npt = 0
@@ -53,7 +55,8 @@ def transform_cov_to_corr_matrix(cov): # a useful function to get correlation ma
     return corr
 
 def safe_divide(numerator, denominator):
-    mask = (numerator == 0) & (denominator == 0)
+    # mask = (numerator == 0) & (denominator == 0)
+    mask = (denominator == 0) # Fixes divide by zero errors caused by the and above
     numerator = numerator.astype(np.float64)
     denominator = denominator.astype(np.float64)
     result = np.empty_like(denominator)
@@ -198,7 +201,7 @@ def bkg_subtraction(data_hist, data_hist_err, bkg_hists, bkg_hists_err, mc2data_
 # def bkg_sideband_fit():
 
 if __name__ == "__main__":
-    with open('processedVars.pkl', 'rb') as procfile:
+    with open('/home/jrositas/Had_Ar/processed_files/processedVars.pkl', 'rb') as procfile:
         processedVars = pickle.load(procfile)
 
     true_initial_energy = processedVars["true_initial_energy"]
