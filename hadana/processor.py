@@ -34,6 +34,7 @@ class Processor:
         self.reco_track_length = []
         self.true_beam_PDG = np.array([])
         self.true_beam_daughter_PDG = np.array([])
+        self.int_type = []
         self.mask_TrueSignal = np.array([])
         self.mask_SelectedPart = np.array([])
         self.mask_FullSelection = np.array([])
@@ -88,7 +89,9 @@ class Processor:
             reco_beam_true_byE_PDG = evt["reco_beam_true_byE_PDG"]
             true_beam_PDG = evt["true_beam_PDG"]
             true_beam_daughter_PDG = evt["true_beam_daughter_PDG"]
+            #print("Shape of true_beam_daughter, PDG", true_beam_daughter_PDG)
             true_beam_endProcess = evt["true_beam_endProcess"]
+            #print("Shape of true_beam_endProcess", true_beam_endProcess)
 
             g4rw_full_grid_piplus_coeffs = evt["g4rw_full_grid_piplus_coeffs"]
             g4rw_full_grid_proton_coeffs = evt["g4rw_full_grid_proton_coeffs"]
@@ -206,17 +209,73 @@ class Processor:
                 par_type = GetParticleType(self.particle.pdg, self.isMC, isFake[ievt], reco_beam_true_byE_matched[ievt], reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt], true_beam_PDG[ievt], true_beam_endProcess[ievt])
                 self.particle_type.append(par_type)
 
-                inclusive = True
+
+                n_pi_plus = 0
+                n_pi_zero = 0
+                n_pi_minus = 0
+                for particle in true_beam_daughter_PDG[ievt]:
+                    if particle == -211:
+                        n_pi_minus += 1
+                    elif particle == 211:
+                        n_pi_plus += 1
+                    elif particle == 111:
+                        n_pi_zero += 1
+                int_type = None
+                if n_pi_plus == 1 and n_pi_zero == 0 and n_pi_minus == 0:
+                    int_type = "inel"
+                elif n_pi_plus == 0 and n_pi_zero == 1 and n_pi_minus == 0:
+                    int_type = "cex"
+                elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 1:
+                    int_type = "dcex"
+                elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 0:
+                    int_type = "abs"
+                elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
+                    int_type = "prod"
+                """
+                for daughters in true_beam_daughter_PDG:
+                    n_pi_plus = 0
+                    n_pi_zero = 0
+                    n_pi_minus = 0
+                    for particle in daughters:
+                        if particle == -211:
+                            n_pi_minus += 1
+                        elif particle == 211:
+                            n_pi_plus += 1
+                        elif particle == 111:
+                            n_pi_zero += 1
+                    int_type = None
+                    if n_pi_plus == 1 and n_pi_zero == 0 and n_pi_minus == 0:
+                        int_type = "inel"
+                    elif n_pi_plus == 0 and n_pi_zero == 1 and n_pi_minus == 0:
+                        int_type = "cex"
+                    elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 1:
+                        int_type = "dcex"
+                    elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 0:
+                        int_type = "abs"
+                    elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
+                        int_type = "prod"
+                    int_type_ls.append(int_type)
+                    
+
+                selected_ex = [False] * len(self.true_beam_PDG)
+                for i, ev_type in enumerate(self.int_type): #this is the inefficient C way of doing it. Switch to the Pythonic way
+                    if ev_type == "inel": # Need to change this each time to select for different event types
+                        selected_ex[i] = True
+                    """
+                # selected_ex = processedVars["selected_ex"] # purposely redundant for now, but can just be incorporated into the above loop and skip the dict assign
                 # Can implement the function for implementing the interaction identification from
                 # calc_true to here
+                # print("int_type", int_type)
+                # selected = (selected_ex == "cex") # THIS LINE IS WHERE THE EXCLUSIVE CHANNEL IS SELECTED
+                self.int_type.append(int_type)
                 if self.particle.pdg == 211:
-                    if inclusive and true_beam_endProcess[ievt]=="pi+Inelastic": #modify this line, change inclusive to selected_ex selection
+                    if (int_type == "abs") and true_beam_endProcess[ievt]=="pi+Inelastic": #modify this line, change inclusive to selected_ex selection
                         true_flag = 1
                     else:
                         true_flag = 0
                     reco_flag = 1
                 elif self.particle.pdg == 2212:
-                    if inclusive and true_beam_endProcess[ievt]=="protonInelastic":
+                    if (int_type == "abs") and true_beam_endProcess[ievt]=="protonInelastic":
                         true_flag = 1
                     else:
                         true_flag = 0
@@ -254,6 +313,7 @@ class Processor:
             self.mask_FullSelection = np.concatenate([self.mask_FullSelection, mask_FullSelection])
             self.true_beam_PDG = np.concatenate([self.true_beam_PDG, true_beam_PDG])
             self.true_beam_daughter_PDG = np.concatenate([self.true_beam_daughter_PDG, true_beam_daughter_PDG])
+            # self.int_type = np.concatenate([self.int_type, int_type])
             self.g4rw_full_grid_piplus_coeffs = np.concatenate([self.g4rw_full_grid_piplus_coeffs, g4rw_full_grid_piplus_coeffs])
             self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
             self.true_beam_startP = np.concatenate([self.true_beam_startP, true_beam_startP])
@@ -294,6 +354,7 @@ class Processor:
         outVars["reco_track_length"] = self.reco_track_length
         outVars["true_beam_PDG"] = self.true_beam_PDG
         outVars["true_beam_daughter_PDG"] = self.true_beam_daughter_PDG
+        outVars["int_type"] = self.int_type
         outVars["mask_TrueSignal"] = self.mask_TrueSignal
         outVars["mask_SelectedPart"] = self.mask_SelectedPart
         outVars["mask_FullSelection"] = self.mask_FullSelection
