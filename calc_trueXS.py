@@ -4,7 +4,7 @@ from hadana.BetheBloch import BetheBloch
 
 
 beamPDG = 211
-with open('processed_files/procVars_piMC_test.pkl', 'rb') as procfile:
+with open('processed_files/procVars_piMC_abs.pkl', 'rb') as procfile:
     processedVars = pickle.load(procfile)
 if beamPDG == 211:
     true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
@@ -52,7 +52,7 @@ mask_combined = []
 for i, val in enumerate(mask_TrueSignal):# Here is the combined exclusive and signal mask
     mask_combined.append(val and selected_ex[i])
 """
-selected_type = "abs"
+selected_type = "abs" # Sets the type of interaction being analyzed.
 true_initial_energy = processedVars["true_initial_energy"]
 true_end_energy = processedVars["true_end_energy"]
 # selected_ex = [channel == selected_type for channel in processedVars["int_type"]]
@@ -110,7 +110,7 @@ plt.errorbar(XS_x, XS_y, XS_yerr, XS_xerr, fmt=".", label="Extracted true signal
 # print("XSerr:", XS_yerr.tolist())
 #xx = np.linspace(0, 1100, 100)
 #plt.plot(xx,XS_gen_ex(xx), label="Signal cross section used in simulation")
-plt.plot(*incl_simcurve, label="Signal cross section used in simulation")
+plt.plot(*incl_simcurve, label="Total Inclusive")
 plt.plot(*abs_simcurve, label="Absorption")
 plt.plot(*cex_simcurve, label="Charge Exchange")
 plt.plot(*dcex_simcurve, label="Double Charge Exchange")
@@ -118,7 +118,7 @@ plt.plot(*inel_simcurve, label="Inelastic")
 plt.plot(*prod_simcurve, label="Pion Production")
 sim_curve_dict = {"incl": incl_simcurve, "abs": abs_simcurve,"cex": cex_simcurve,
                   "dcex": dcex_simcurve, "inel": inel_simcurve, "prod": prod_simcurve}
-XS_diff = XS_y - np.interp(XS_x, sim_curve_dict[selected_type][0], sim_curve_dict[selected_type][1]) # Need to fix this to not be hardcoded
+XS_diff = XS_y - np.interp(XS_x, sim_curve_dict[selected_type][0], sim_curve_dict[selected_type][1])
 inv_XS_Vcov = np.linalg.pinv(true_XS_Vcov[1:-1, 1:-1])
 chi2 = np.einsum("i,ij,j->", XS_diff, inv_XS_Vcov, XS_diff)
 print(f"Chi2/Ndf = {chi2}/{len(XS_diff)}")

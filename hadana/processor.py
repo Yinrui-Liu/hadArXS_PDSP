@@ -269,13 +269,13 @@ class Processor:
                 # selected = (selected_ex == "cex") # THIS LINE IS WHERE THE EXCLUSIVE CHANNEL IS SELECTED
                 self.int_type.append(int_type)
                 if self.particle.pdg == 211:
-                    if (int_type == "abs") and true_beam_endProcess[ievt]=="pi+Inelastic": #modify this line, change inclusive to selected_ex selection
+                    if (int_type == "inel") and true_beam_endProcess[ievt]=="pi+Inelastic": #modify this line, change inclusive to selected_ex selection
                         true_flag = 1
                     else:
                         true_flag = 0
                     reco_flag = 1
                 elif self.particle.pdg == 2212:
-                    if (int_type == "abs") and true_beam_endProcess[ievt]=="protonInelastic":
+                    if (int_type == "inel") and true_beam_endProcess[ievt]=="protonInelastic":
                         true_flag = 1
                     else:
                         true_flag = 0
