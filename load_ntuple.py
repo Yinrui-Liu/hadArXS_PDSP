@@ -5,18 +5,18 @@ import hadana.MC_reweight as reweight
 
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04, PDSPProd4_data_1GeV_reco2_ntuple_AltSCEData
-PDSP_ntuple_name = "pduneana_MC_20g4rw"
+PDSP_ntuple_name = "/media/sf_Saikat_sharedfolder/ProtoDUNE_root_files/PDSPProd4a_MC_2GeV_reco1_sce_datadriven_v1_ntuple_v09_41_00_03.root_split_1"
 beamPDG = 211
 outfilename = "processed_files/procVars_piMC.pkl"
 Nevents = None # change Nevents for smaller sample size
 
 
-PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")
+PDSP_ntuple = uproot.open(f"{PDSP_ntuple_name}.root")
 if "MC" in PDSP_ntuple_name:
     isMC = True
 else:
     isMC = False
-pduneana = PDSP_ntuple["pduneana/beamana"]
+pduneana = PDSP_ntuple["beamana"]
 
 variables_to_load = [
     "event",
@@ -67,7 +67,7 @@ elif beamPDG == 2212:
     particle = selection.Particle(beamPDG, 938.272)
     particle.SetCandidatePDGlist(2212)
 
-eventset = Processor(pduneana, particle, isMC, selection=[True,True,True,True,True,True], fake_data=False) # fake_data is False for all true MC, True for all fake data, None for half-half
+eventset = Processor(pduneana, particle, isMC, selection=[True,True,True,True,True,True], fake_data=None) # fake_data is False for all true MC, True for all fake data, None for half-half
 eventset.LoadVariables(variables_to_load)
 eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()

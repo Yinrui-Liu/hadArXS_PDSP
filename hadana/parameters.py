@@ -1,10 +1,15 @@
 from .packages import *
 
 ### energy slicing/binning
-true_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
+"""true_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
 meas_bins_pionp = np.array([1000, 900, 850, 800, 750, 700, 650, 600, 550, 500, 0])
 true_bins_proton = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
-meas_bins_proton = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])
+meas_bins_proton = np.array([500,450,400,350,300,250,200,150,100,70,40,10,0])"""
+
+### energy slicing/binning for 2 GeV pion with 100 MeV bins
+
+true_bins_pionp = np.array([2100, 2000, 1900, 1800, 1700, 1600, 1500, 1400, 1300, 1200, 1100, 1000, 0])
+meas_bins_pionp = np.array([2100, 2000, 1900, 1800, 1700, 1600, 1500, 1400, 1300, 1200, 1100, 1000, 0])
 
 ### fiducial volume
 fidvol_low = 30

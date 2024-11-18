@@ -20,10 +20,10 @@ def cal_momentum_reweight(procVars, rdm_radius=0, rdm_angle=0):
         return weight
     
     if procVars["beamPDG"] == 211:
-        mom_mu0 = 1.0046
-        mom_sigma0 = 0.0617
-        mom_mu = 1.0198
-        mom_sigma = 0.0744
+        mom_mu0 = 2.0046
+        mom_sigma0 = 1.0217
+        mom_mu = 2.0198
+        mom_sigma = 1.1404
         if rdm_radius != 0:
             oval_cx = 1.0198
             oval_cy = 0.0744

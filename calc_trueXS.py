@@ -7,7 +7,7 @@ beamPDG = 211
 with open('processed_files/procVars_piMC.pkl', 'rb') as procfile:
     processedVars = pickle.load(procfile)
 if beamPDG == 211:
-    true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
+    true_bins = np.array([2100, 2000, 1900, 1800, 1700, 1600, 1500, 1400, 1300, 1200, 1100, 1000, 0])
 elif beamPDG == 2212:
     true_bins = np.array([500,475,450,425,400,375,350,325,300,275,250,225,200,175,150,125,100,75,50,25,0])
 
@@ -40,7 +40,7 @@ true_3N_Vcov = slicing.get_Cov_3N_from_3SID(true_3SID_Vcov, Ntruebins)
 true_XS, true_XS_Vcov = slicing.calculate_XS_Cov_from_3N(true_Ninc, true_Nend, true_Nint_ex, true_3N_Vcov, true_bins, BetheBloch(beamPDG))
 
 if beamPDG == 211:
-    simcurvefile_name = "input_files/exclusive_xsec.root"
+    simcurvefile_name = "/media/sf_Saikat_sharedfolder/ProtoDUNE_root_files/exclusive_xsec.root"
     simcurve_name = "total_inel_KE"
 elif beamPDG == 2212:
     simcurvefile_name = "input_files/proton_cross_section.root"
