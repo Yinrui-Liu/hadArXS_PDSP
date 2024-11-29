@@ -71,7 +71,7 @@ class Processor:
             reco_beam_calo_X = evt["reco_beam_calo_X"]
             reco_beam_calo_Y = evt["reco_beam_calo_Y"]
             reco_beam_calo_Z = evt["reco_beam_calo_Z"]
-            beam_inst_P = 2.0*evt["beam_inst_P"]
+            beam_inst_P = evt["beam_inst_P"]
             beam_inst_KE = np.sqrt( np.power(beam_inst_P*1000, 2) + self.particle.mass**2 ) - self.particle.mass
             upstream_energy_loss = GetUpstreamEnergyLoss(beam_inst_KE, self.particle.pdg)
             if self.isMC and self.extra_correct_KEi:
