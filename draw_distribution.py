@@ -5,8 +5,8 @@ use_real_data = True
 beampdg = 211
 binedges = np.linspace(0, 280, 50)
 xlabel = r"Reconstructed track length [cm]" ### also edit below the variable to plot
-procdataname = f"processed_files/procVars_pidata.pkl" # processed_files/procVars_pidata.pkl
-procMCname = f"processed_files/procVars_piMC.pkl" # processed_files/procVars_piMC.pkl
+procdataname = f"/home/saikat/HadANA_Versions/hadArXS_PDSP_old/procVars_piMC.pkl" # processed_files/procVars_pidata.pkl
+procMCname = f"/home/saikat/HadANA_Versions/hadArXS_PDSP_old/procVars_piMC.pkl" # processed_files/procVars_piMC.pkl
 
 partypedict_pionp = {
     0: "Data", 
@@ -85,10 +85,10 @@ variables_to_load = [
     "g4rw_full_grid_proton_coeffs",
     "true_beam_startP",
 ]
-PDSP_ntuple = uproot.open(f"input_files/pduneana_MC_20g4rw.root")
-pduneana_mc = PDSP_ntuple["pduneana/beamana"]
-PDSP_ntuple = uproot.open(f"input_files/PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04.root")
-pduneana_data = PDSP_ntuple["pduneana/beamana"]
+PDSP_ntuple = uproot.open(f"/media/sf_Saikat_sharedfolder/ProtoDUNE_root_files/PDSPProd4a_MC_2GeV_reco1_sce_datadriven_v1_ntuple_v09_41_00_03.root_split_1.root")
+pduneana_mc = PDSP_ntuple["beamana"]
+PDSP_ntuple = uproot.open(f"/media/sf_Saikat_sharedfolder/ProtoDUNE_root_files/PDSPProd4a_MC_2GeV_reco1_sce_datadriven_v1_ntuple_v09_41_00_03.root_split_1.root")
+pduneana_data = PDSP_ntuple["beamana"]
 
 if beampdg == 211:
     pardict = partypedict_pionp
