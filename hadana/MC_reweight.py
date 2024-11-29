@@ -7,7 +7,7 @@ def cal_bkg_reweight(procVars):
     if not procVars["isMC"]:
         return weight
     
-    mufrac = 1.63
+    mufrac = 1.71
     #weight[(true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1)] *= mufrac
     weight = np.where((true_beam_PDG == -13) & (reco_beam_true_byE_matched == 1), weight * mufrac, weight)
     return weight
@@ -21,9 +21,9 @@ def cal_momentum_reweight(procVars, rdm_radius=0, rdm_angle=0):
     
     if procVars["beamPDG"] == 211:
         mom_mu0 = 2.0046
-        mom_sigma0 = 1.0217
+        mom_sigma0 = 0.10217
         mom_mu = 2.0198
-        mom_sigma = 1.1404
+        mom_sigma = 0.1004
         if rdm_radius != 0:
             oval_cx = 1.0198
             oval_cy = 0.0744

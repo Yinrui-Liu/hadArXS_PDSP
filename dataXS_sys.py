@@ -404,7 +404,7 @@ if plot_energy_hists:
     axs[0, 2].legend(handles, labels)
 
     # plot Ninc
-    """unfd_Ninc = unfd_Ninc_1
+    unfd_Ninc = unfd_Ninc
     axs[1, 0].errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, color="r", fmt=".", label="Data measured")
     axs[1, 0].errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, color="b", fmt=".", label="Data unfolded")
     histy_center = mctrue_Ninc*sig_MC_scale
@@ -427,7 +427,8 @@ if plot_energy_hists:
     handles.append((le_m[0], le_m[1]))
     labels.append("MC measured")
     axs[1, 0].legend(handles, labels)
-    unfd_Ninc = unfd_Ninc_2
+    
+    """unfd_Ninc = unfd_Ninc_2
     axs[1, 1].errorbar(meas_cKE, meas_Ninc, meas_Ninc_err, meas_wKE, color="r", fmt=".", label="Data measured")
     axs[1, 1].errorbar(true_cKE, unfd_Ninc, unfd_Ninc_err, true_wKE, color="b", fmt=".", label="Data unfolded")
     histy_center = mctrue_Ninc*sig_MC_scale

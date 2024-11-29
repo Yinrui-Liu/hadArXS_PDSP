@@ -7,7 +7,7 @@ import hadana.MC_reweight as reweight
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04, PDSPProd4_data_1GeV_reco2_ntuple_AltSCEData
 PDSP_ntuple_name = "/media/sf_Saikat_sharedfolder/ProtoDUNE_root_files/PDSPProd4a_MC_2GeV_reco1_sce_datadriven_v1_ntuple_v09_41_00_03.root_split_1"
 beamPDG = 211
-outfilename = "processed_files/procVars_piMC.pkl"
+outfilename = "processed_files/procVars_piMC_100MeV_uncorrected.pkl"
 Nevents = None # change Nevents for smaller sample size
 
 
