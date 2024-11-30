@@ -2,71 +2,41 @@ from hadana.packages import *
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
 
-
+selected_type = "cex" # Sets the type of interaction being analyzed.
 beamPDG = 211
-with open('processed_files/procVars_piMC_abs.pkl', 'rb') as procfile:
+file_name_prefix = "processed_files/procVars_piMC_"
+file_name_suffix = ".pkl"
+if selected_type == "incl": file_name = "processed_files/procVars_piMC" + file_name_suffix
+else: file_name = file_name_prefix + selected_type + file_name_suffix
+with open("processed_files/procVars_piMC_test.pkl", 'rb') as procfile:
     processedVars = pickle.load(procfile)
 if beamPDG == 211:
     true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
 elif beamPDG == 2212:
     true_bins = np.array([500,475,450,425,400,375,350,325,300,275,250,225,200,175,150,125,100,75,50,25,0])
 
-"""processedVars["int_type"] = []
 
-for daughters in processedVars["true_beam_daughter_PDG"]:
-    n_pi_plus = 0
-    n_pi_zero = 0
-    n_pi_minus = 0
-    for particle in daughters:
-        if particle == -211:
-            n_pi_minus += 1
-        elif particle == 211:
-            n_pi_plus += 1
-        elif particle == 111:
-            n_pi_zero += 1
-    int_type = None
-    if n_pi_plus == 1 and n_pi_zero == 0 and n_pi_minus == 0:
-        int_type = "inel"
-    elif n_pi_plus == 0 and n_pi_zero == 1 and n_pi_minus == 0:
-        int_type = "cex"
-    elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 1:
-        int_type = "dcex"
-    elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 0:
-        int_type = "abs"
-    elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
-        int_type = "prod"
-    processedVars["int_type"].append(int_type)
-    
-
-processedVars["selected_ex"] = [False] * len(processedVars["true_initial_energy"])
-for i, ev_type in enumerate(processedVars["int_type"]):
-    if ev_type == "inel": # Need to change this each time to select for different event types
-        processedVars["selected_ex"][i] = True
-
-selected_ex = processedVars["selected_ex"] # purposely redundant for now, but can just be incorporated into the above loop and skip the dict assign
-"""
 mask_TrueSignal = processedVars["mask_TrueSignal"] # & mask_exlusvie, exclusive cut goes here^, in addition to the mask we're using to select signal
+type_mask = [int_type == selected_type for int_type in processedVars["int_type"]]
 
-"""
-mask_combined = []
-for i, val in enumerate(mask_TrueSignal):# Here is the combined exclusive and signal mask
-    mask_combined.append(val and selected_ex[i])
-"""
-selected_type = "abs" # Sets the type of interaction being analyzed.
 true_initial_energy = processedVars["true_initial_energy"]
 true_end_energy = processedVars["true_end_energy"]
-# selected_ex = [channel == selected_type for channel in processedVars["int_type"]]
-# true_sigflag = [a and b for a, b in zip(processedVars["true_sigflag"], selected_ex)]
 true_sigflag = processedVars["true_sigflag"]
-# print(true_sigflag)
+new_mask = [] #TODO Give this a more intuitive name
+if selected_type != "incl":
+    for i, int_type in enumerate(processedVars["int_type"]):
+        new_mask.append((int_type==selected_type) and true_sigflag[i])
+    new_mask = np.array(new_mask)
+else: new_mask = true_sigflag
+# selected_ex = [channel == selected_type for channel in processedVars["int_type"]]
 true_containing = processedVars["true_containing"]
 #particle_type = processedVars["particle_type"]
 particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
 reweight = processedVars["reweight"]
-# print(processedVars["int_type"])
+
 divided_trueEini, divided_weights = utils.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueEend, divided_weights = utils.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
-divided_trueflag, divided_weights = utils.divide_vars_by_partype(true_sigflag, particle_type, mask=mask_TrueSignal, weight=reweight)
+divided_trueflag, divided_weights = utils.divide_vars_by_partype(new_mask, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueisct, divided_weights = utils.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
 true_Eini = divided_trueEini[0]
 true_Eend = divided_trueEend[0]
@@ -123,8 +93,11 @@ inv_XS_Vcov = np.linalg.pinv(true_XS_Vcov[1:-1, 1:-1])
 chi2 = np.einsum("i,ij,j->", XS_diff, inv_XS_Vcov, XS_diff)
 print(f"Chi2/Ndf = {chi2}/{len(XS_diff)}")
 title_dict = {"abs": "Pion Absorption", "cex": "Charge Exchange", "dcex": "Double Charge Exchange",
-              "inel": "Pion Inelastic", "prod": "Pion Production"}
-plt.title("Exclusive XSec, " + title_dict[selected_type])
+              "inel": "Pion Inelastic", "prod": "Pion Production", "incl": "Inclusive Cross Section"}
+if selected_type != "incl":
+    plt.title("Exclusive XSec, " + title_dict[selected_type])
+else:
+    plt.title(title_dict["incl"])
 plt.xlabel("Kinetic energy (MeV)")
 plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
 plt.xlim([true_bins[-1], true_bins[0]])
@@ -134,7 +107,10 @@ plt.legend()
 plt.show()
 
 plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(true_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
-plt.title(r"Correlation matrix for cross section")
+if selected_type != "incl":
+    plt.title("Correlation Matrix, " + title_dict[selected_type])
+else:
+    plt.title(title_dict["incl"] + " Correlation Matrix")
 plt.xticks(true_bins[1:-1])
 plt.yticks(true_bins[1:-1])
 plt.xlabel(r"Kinetic energy (MeV)")
