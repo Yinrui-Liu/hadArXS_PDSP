@@ -231,37 +231,7 @@ class Processor:
                     int_type = "abs"
                 elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
                     int_type = "prod"
-                """
-                for daughters in true_beam_daughter_PDG:
-                    n_pi_plus = 0
-                    n_pi_zero = 0
-                    n_pi_minus = 0
-                    for particle in daughters:
-                        if particle == -211:
-                            n_pi_minus += 1
-                        elif particle == 211:
-                            n_pi_plus += 1
-                        elif particle == 111:
-                            n_pi_zero += 1
-                    int_type = None
-                    if n_pi_plus == 1 and n_pi_zero == 0 and n_pi_minus == 0:
-                        int_type = "inel"
-                    elif n_pi_plus == 0 and n_pi_zero == 1 and n_pi_minus == 0:
-                        int_type = "cex"
-                    elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 1:
-                        int_type = "dcex"
-                    elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 0:
-                        int_type = "abs"
-                    elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
-                        int_type = "prod"
-                    int_type_ls.append(int_type)
-                    
-
-                selected_ex = [False] * len(self.true_beam_PDG)
-                for i, ev_type in enumerate(self.int_type): #this is the inefficient C way of doing it. Switch to the Pythonic way
-                    if ev_type == "inel": # Need to change this each time to select for different event types
-                        selected_ex[i] = True
-                    """
+              
                 # selected_ex = processedVars["selected_ex"] # purposely redundant for now, but can just be incorporated into the above loop and skip the dict assign
                 # Can implement the function for implementing the interaction identification from
                 # calc_true to here

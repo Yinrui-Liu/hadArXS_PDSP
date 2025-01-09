@@ -7,7 +7,7 @@ import hadana.parameters as parameters
 
 
 beamPDG = 211
-datafilename = "processed_files/procVars_piMC.pkl" # Data goes here
+datafilename = "processed_files/procVars_piPDSP.pkl" # Data goes here
 MCfilename = "processed_files/procVars_piMC.pkl" # Monte Carlo Data here
 resfilename = "processed_files/response_pi.pkl"
 # types of systematic uncertainties to include

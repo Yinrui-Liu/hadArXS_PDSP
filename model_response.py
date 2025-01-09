@@ -94,7 +94,7 @@ plt.title(r"Efficiency for true ${\rm ID_{rem}}$")
 plt.xlim([-1, Ntruebins_1D])
 plt.ylim([0, 1])
 plt.legend()
-plt.savefig(f"plots/efficiency_plot_{beamPDG}.pdf")
+# plt.savefig(f"plots/efficiency_plot_{beamPDG}.pdf")
 plt.show()
 
 plt.imshow(np.ma.masked_where(response_matrix == 0, response_matrix), origin="lower")
@@ -102,7 +102,7 @@ plt.title(r"Response matrix for ${\rm ID_{rem}}$")
 plt.xlabel(r"Measured ${\rm ID_{rem}}$")
 plt.ylabel(r"True ${\rm ID_{rem}}$")
 plt.colorbar(label="Counts")
-plt.savefig(f"plots/response_matrix_{beamPDG}.pdf")
+# plt.savefig(f"plots/response_matrix_{beamPDG}.pdf")
 plt.show()
 
 with open(respfilename, 'wb') as respfile: # save the response modeled by MC

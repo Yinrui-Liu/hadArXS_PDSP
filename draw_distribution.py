@@ -5,7 +5,7 @@ use_real_data = True
 beampdg = 211
 binedges = np.linspace(0, 280, 50)
 xlabel = r"Reconstructed track length [cm]" ### also edit below the variable to plot
-procdataname = f"processed_files/procVars_pidata.pkl" # processed_files/procVars_pidata.pkl
+procdataname = f"processed_files/procVars_piPDSP.pkl" # processed_files/procVars_pidata.pkl
 procMCname = f"processed_files/procVars_piMC.pkl" # processed_files/procVars_piMC.pkl
 
 partypedict_pionp = {
@@ -142,7 +142,8 @@ if False: # to draw the angle variable
     beam_costh_data = np.einsum('ij,ij->i', dir, beamdir)
 
 varhist_mc = processedVars_mc["reco_track_length"] # examples: processedVars_mc["reco_track_length"], np.array(pduneana_mc["beam_inst_P"]), (np.array(pduneana_mc["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_mc"])/parameters.pionBQ["beam_startX_rms_mc"], np.where(np.array(pduneana_mc["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_mc["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_mc["reco_beam_calo_wire"])]), np.array(pduneana_mc["reco_beam_Chi2_proton"]) / np.array(pduneana_mc["reco_beam_Chi2_ndof"]), -1)
-varhist_data = processedVars_data["reco_track_length"] # examples: processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"]), (np.array(pduneana_data["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_data"])/parameters.pionBQ["beam_startX_rms_data"], np.where(np.array(pduneana_data["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_data["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_data["reco_beam_calo_wire"])]), np.array(pduneana_data["reco_beam_Chi2_proton"]) / np.array(pduneana_data["reco_beam_Chi2_ndof"]), -1)
+if use_real_data:
+    varhist_data = processedVars_data["reco_track_length"] # examples: processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"]), (np.array(pduneana_data["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_data"])/parameters.pionBQ["beam_startX_rms_data"], np.where(np.array(pduneana_data["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_data["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_data["reco_beam_calo_wire"])]), np.array(pduneana_data["reco_beam_Chi2_proton"]) / np.array(pduneana_data["reco_beam_Chi2_ndof"]), -1)
 
 # draw the data points and stacked MC histograms by event type in the comparison plot
 divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(varhist_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
@@ -171,8 +172,8 @@ ax1.errorbar(bincenters, hists_data, yerr=hists_err_data, fmt='o', color='k', ma
 MC_data_scale = Ndata / Nmc
 binmc, _, _ = ax1.hist(divided_vars_mc[1:], binedges, weights=[i*MC_data_scale for i in divided_weights_mc[1:]], label=[f'{pardict[i+1]} {MC_data_scale*Nmc_sep[i]:.0f}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True) # binmc is cumulative hists_mc
 
-ratio_err = hists_data/binmc[-1] * np.sqrt(np.power(hists_err_mc/binmc[-1], 2) + np.power(hists_err_data/hists_data, 2)) # error of the ratio
-ax2.errorbar(bincenters, hists_data/binmc[-1], yerr=ratio_err, fmt='o', color='k', markersize=1)
+ratio_err = hists_data/binmc[-1] * np.sqrt(np.power(utils.safe_divide(hists_err_mc,binmc[-1]), 2) + np.power(utils.safe_divide(hists_err_data,hists_data), 2)) # error of the ratio
+ax2.errorbar(bincenters, utils.safe_divide(hists_data,binmc[-1]), yerr=ratio_err, fmt='o', color='k', markersize=1)
 ax2.plot(binedges, np.ones_like(binedges), 'r:')
 
 ax1.set_xticks(np.arange(binedges[0], binedges[-1], 10), minor=True)

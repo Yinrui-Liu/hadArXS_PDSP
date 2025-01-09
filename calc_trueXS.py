@@ -2,13 +2,13 @@ from hadana.packages import *
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
 
-selected_type = "cex" # Sets the type of interaction being analyzed.
+selected_type = "inel" # Sets the type of interaction being analyzed.
 beamPDG = 211
 file_name_prefix = "processed_files/procVars_piMC_"
 file_name_suffix = ".pkl"
 if selected_type == "incl": file_name = "processed_files/procVars_piMC" + file_name_suffix
 else: file_name = file_name_prefix + selected_type + file_name_suffix
-with open("processed_files/procVars_piMC_test.pkl", 'rb') as procfile:
+with open(file_name, 'rb') as procfile:
     processedVars = pickle.load(procfile)
 if beamPDG == 211:
     true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
@@ -16,18 +16,18 @@ elif beamPDG == 2212:
     true_bins = np.array([500,475,450,425,400,375,350,325,300,275,250,225,200,175,150,125,100,75,50,25,0])
 
 
-mask_TrueSignal = processedVars["mask_TrueSignal"] # & mask_exlusvie, exclusive cut goes here^, in addition to the mask we're using to select signal
+mask_TrueSignal = processedVars["mask_TrueSignal"]
 type_mask = [int_type == selected_type for int_type in processedVars["int_type"]]
 
 true_initial_energy = processedVars["true_initial_energy"]
 true_end_energy = processedVars["true_end_energy"]
 true_sigflag = processedVars["true_sigflag"]
-new_mask = [] #TODO Give this a more intuitive name
+channel_mask = []
 if selected_type != "incl":
     for i, int_type in enumerate(processedVars["int_type"]):
-        new_mask.append((int_type==selected_type) and true_sigflag[i])
-    new_mask = np.array(new_mask)
-else: new_mask = true_sigflag
+        channel_mask.append((int_type==selected_type) and true_sigflag[i])
+    channel_mask = np.array(channel_mask)
+else: channel_mask = true_sigflag
 # selected_ex = [channel == selected_type for channel in processedVars["int_type"]]
 true_containing = processedVars["true_containing"]
 #particle_type = processedVars["particle_type"]
@@ -36,7 +36,7 @@ reweight = processedVars["reweight"]
 
 divided_trueEini, divided_weights = utils.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueEend, divided_weights = utils.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
-divided_trueflag, divided_weights = utils.divide_vars_by_partype(new_mask, particle_type, mask=mask_TrueSignal, weight=reweight)
+divided_trueflag, divided_weights = utils.divide_vars_by_partype(channel_mask, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueisct, divided_weights = utils.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
 true_Eini = divided_trueEini[0]
 true_Eend = divided_trueEend[0]
