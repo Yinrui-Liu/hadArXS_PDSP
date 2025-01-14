@@ -232,21 +232,14 @@ class Processor:
                 elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
                     int_type = "prod"
               
-                # selected_ex = processedVars["selected_ex"] # purposely redundant for now, but can just be incorporated into the above loop and skip the dict assign
-                # Can implement the function for implementing the interaction identification from
-                # calc_true to here
-                # print("int_type", int_type)
-                # selected = (selected_ex == "cex") # THIS LINE IS WHERE THE EXCLUSIVE CHANNEL IS SELECTED
                 self.int_type.append(int_type)
                 if self.particle.pdg == 211:
-                    # if (int_type == "prod") and true_beam_endProcess[ievt]=="pi+Inelastic": # use this for doing one channel at a time
                     if true_beam_endProcess[ievt]=="pi+Inelastic": # use this line to do multiple channels
                         true_flag = 1
                     else:
                         true_flag = 0
                     reco_flag = 1
                 elif self.particle.pdg == 2212:
-                    # if (int_type == "prod") and true_beam_endProcess[ievt]=="protonInelastic": # use this for doing one channel at a time
                     if true_beam_endProcess[ievt]=="protonInelastic": # use this line to do multiple channels
                         true_flag = 1
                     else:
