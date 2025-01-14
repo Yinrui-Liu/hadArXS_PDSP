@@ -7,7 +7,7 @@ import hadana.MC_reweight as reweight
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04, PDSPProd4_data_1GeV_reco2_ntuple_AltSCEData
 PDSP_ntuple_name = "/media/sf_Saikat_sharedfolder/ProtoDUNE_root_files/PDSPProd4a_MC_2GeV_reco1_sce_datadriven_v1_ntuple_v09_41_00_03.root_split_1"
 beamPDG = 211
-outfilename = "processed_files/procVars_piMC_100MeV_uncorrected.pkl"
+outfilename = "processed_files/procVars_piMC_100MeVBin_6Proton.pkl"
 Nevents = None # change Nevents for smaller sample size
 
 
@@ -67,8 +67,16 @@ elif beamPDG == 2212:
     particle = selection.Particle(beamPDG, 938.272)
     particle.SetCandidatePDGlist(2212)
 
-eventset = Processor(pduneana, particle, isMC, selection=[True,True,True,True,True,True], fake_data=None) # fake_data is False for all true MC, True for all fake data, None for half-half
+
+selection_array = [True, True, True, True, True, True]  # All cuts disabled
+
+eventset = Processor(pduneana, particle, isMC, selection=selection_array, fake_data=None) # fake_data is False for all true MC, True for all fake data, None for half-half
 eventset.LoadVariables(variables_to_load)
+
+"""if not any(selection_array):  # If all cuts are disabled
+    processedVars = {"mask_FullSelection": np.ones(len(pduneana["event"].array()), dtype=bool)}"""
+
+    
 eventset.ProcessEvent(Nevents=Nevents)
 processedVars = eventset.GetOutVarsDict()
 

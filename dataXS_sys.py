@@ -4,11 +4,12 @@ import hadana.multiD_mapping as multiD
 from hadana.BetheBloch import BetheBloch
 import hadana.parameters as parameters
 import hadana.MC_reweight as reweight
+import ROOT
 
 
 beamPDG = 211
-datafilename = "/home/saikat/HadANA_Versions/hadArXS_PDSP/processed_files/procVars_piMC.pkl"
-MCfilename = "/home/saikat/HadANA_Versions/hadArXS_PDSP/processed_files/procVars_piMC.pkl"
+datafilename = "/home/saikat/HadANA_Versions/hadArXS_PDSP/processed_files/procVars_piMC_unevenbin.pkl"
+MCfilename = "/home/saikat/HadANA_Versions/hadArXS_PDSP/processed_files/procVars_piMC_unevenbin.pkl"
 # types of systematic uncertainties to include
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.13, 0.11, 0.12, 0, 0]  proton [0, 0, 0, 0, 0, 0, 0]
@@ -117,7 +118,6 @@ print(f"Bkg scale \t{bkg_scale}\nError \t\t{bkg_scale_err}")
 sig_meas_N3D, sig_meas_N3D_err = utils.bkg_subtraction(data_meas_N3D, data_meas_N3D_err, bkg_meas_N3D_list, bkg_meas_N3D_err_list, mc2data_scale=Ndata/Ntruemc, bkg_scale=bkg_scale, bkg_scale_err=bkg_scale_err, include_bkg_err=inc_sys_bkg)
 
 
-
 ### unfolding
 print("### model response")
 mask_TrueSignal_mc = processedVars_mc["mask_TrueSignal"]
@@ -144,6 +144,7 @@ mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex = slicing.get_sliceID_histogra
 mc_true_Nini, mc_true_Nend, mc_true_Nint_ex, mc_true_Ninc = slicing.derive_energy_histograms(mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex, Ntruebins, mc_true_weight)
 mc_true_SID3D, mc_true_N3D, mc_true_N3D_Vcov = slicing.get_3D_histogram(mc_true_SIDini, mc_true_SIDend, mc_true_SIDint_ex, Ntruebins, mc_true_weight)
 
+print ("Length of stuffs", len(mc_true_SIDini), len(mc_true_SIDend), len(mc_true_Eini))
 divided_recoEini_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_initial_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
 divided_recoEend_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
 divided_recoflag_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_sigflag_mc, particle_type_bool_mc, mask=combined_true_mask_mc, weight=weight_mc)
@@ -182,11 +183,13 @@ if inc_sys_MCstat:
     for ievt in range(len(mc_reco_weight)):
         mc_reco_weight_fluc[ievt] = mc_reco_weight[ievt] * utils.safe_divide(response_matrix_fluc[true_3D1D_map[mc_true_SID3D_sel[ievt]]-1,meas_3D1D_map[mc_meas_SID3D[ievt]]-1], response_matrix_nominal[true_3D1D_map[mc_true_SID3D_sel[ievt]]-1,meas_3D1D_map[mc_meas_SID3D[ievt]]-1])
     response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], mc_reco_weight_fluc)
-    print(eff1D, response_matrix,sep='\n')
+    print("This is response matrix", eff1D, response_matrix,sep='\n')
 else:
     eff1D, mc_true_SID3D_sel = multiD.get_efficiency(mc_true_N3D, mc_true_N1D, mc_true_SID3D, Ntruebins_3D, pass_selection_mc, mc_reco_weight)
     response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[mc_meas_SID3D], true_3D1D_map[mc_true_SID3D_sel], mc_reco_weight)
-    print(eff1D, response_matrix,sep='\n')
+    print("This is response matrix 2", eff1D, response_matrix,sep='\n')
+
+print("Response Matrix Dimensions:", response_matrix.shape)  # (Ntruebins, Nmeasbins)
 
 print("### unfolding")
 sig_meas_N1D, sig_meas_N1D_err = multiD.map_data_to_MC_bins(sig_meas_N3D, sig_meas_N3D_err, meas_3D1D_map)
@@ -223,6 +226,17 @@ elif use_total_cov:
     unfd_XS_Vcov_tot = unfd_XS_Vcov_tot + np.diag(np.power([0, 19.899637548224746, 9.831537758922877, 19.289352459702855, 16.218207745826703, 36.30653231021586, 3.8789110001945346, 38.822604035627364, 11.29462574327863, 0], 2)[::-1]) # sys:SCE (list copied from draw_sys_uncert.py)
     print("Use total covariance matrix")
 print(f"Energy bin edges \t{true_bins[::-1]}\nMeasured cross section \t{unfd_XS[::-1].tolist()}\nUncertainty \t\t{np.sqrt(np.diag(unfd_XS_Vcov))[::-1].tolist()}")
+
+
+# Visualize the response matrix
+plt.figure(figsize=(10, 8))
+plt.imshow(np.ma.masked_where(response_matrix == 0, response_matrix), origin="lower", aspect='auto')
+plt.colorbar(label="Counts")
+plt.title("Response Matrix")
+plt.xlabel("Measured Bin Index")
+plt.ylabel("True Bin Index")
+#plt.savefig("plots/response_matrix.pdf")
+plt.show()
 
 if save_xs_for_sys:
     with open(systxtfile, "ab") as f:
@@ -284,7 +298,42 @@ else:
         plt.savefig(f"plots/XS_correlation_{beamPDG}.pdf")
     plt.show()
 
-plot_energy_hists =True
+
+# Compute lower and upper errors
+eff1D_lower_err = []
+eff1D_upper_err = []
+for ii in range(len(eff1D)):
+    lower_err = max(0, eff1D[ii] - ROOT.TEfficiency.ClopperPearson(int(mc_true_N1D[ii]), int(mc_true_N1D[ii] * eff1D[ii]), 0.6826894921, False))
+    upper_err = ROOT.TEfficiency.ClopperPearson(int(mc_true_N1D[ii]), int(mc_true_N1D[ii] * eff1D[ii]), 0.6826894921, True) - eff1D[ii]
+    eff1D_lower_err.append(lower_err)
+    eff1D_upper_err.append(upper_err)
+
+# Convert to numpy arrays for plotting
+eff1D_lower_err = np.array(eff1D_lower_err)
+eff1D_upper_err = np.array(eff1D_upper_err)
+
+# Plot efficiency with error bars
+plt.figure(figsize=[8, 5])
+plt.errorbar(
+    x=np.arange(Ntruebins_1D),
+    y=eff1D,
+    yerr=[eff1D_lower_err, eff1D_upper_err],
+    fmt="o",
+    ecolor="blue",
+    elinewidth=1,
+    capsize=3,
+    label="Efficiency"
+)
+plt.axhline(y=0, color="red", linestyle="--", linewidth=0.8, label="Zero Limit")
+plt.xlabel("Bin Index")
+plt.ylabel("Efficiency")
+plt.ylim([-0.1, 1.1])  # Ensure no values below 0 or above 1 are shown
+plt.title("Efficiency with Error Bars (Clipped to Physical Limits)")
+plt.legend()
+plt.grid(True, linestyle="--", alpha=0.6)
+plt.show()
+
+plot_energy_hists = True
 
 if plot_energy_hists:
     from matplotlib.patches import Patch
@@ -455,4 +504,85 @@ if plot_energy_hists:
     axs[1, 2].set_visible(False)
     plt.tight_layout()
     plt.savefig(f"plots/Ehists_1D{beamPDG}.pdf")
+    plt.show()
+
+    # Filter bins and relevant data for KE > 1000 MeV
+    # Use true_bins for filtering bins
+    
+    bin_mask = true_bins[:-1] >= 1000
+    filtered_bins = true_bins[:-1][bin_mask]
+    filtered_bin_widths = np.diff(true_bins)[bin_mask]
+
+    
+    # Filter data for plotting
+    def filter_data(data, mask):
+        return data[mask]
+
+    ratios_true_reco = {
+        "N_ini": filter_data(((mctrue_Nini - mcmeas_Nini) / mctrue_Nini) * 100, bin_mask),
+        "N_end": filter_data(((mctrue_Nend - mcmeas_Nend) / mctrue_Nend) * 100, bin_mask),
+        "N_int_ex": filter_data(((mctrue_Nint_ex - mcmeas_Nint_ex) / mctrue_Nint_ex) * 100, bin_mask),
+        "N_inc": filter_data(((mctrue_Ninc - mcmeas_Ninc) / mctrue_Ninc) * 100, bin_mask),
+    }
+
+    ratios_true_unfold = {
+        "N_ini": filter_data(((mctrue_Nini - unfd_Nini) / mctrue_Nini) * 100, bin_mask),
+        "N_end": filter_data(((mctrue_Nend - unfd_Nend) / mctrue_Nend) * 100, bin_mask),
+        "N_int_ex": filter_data(((mctrue_Nint_ex - unfd_Nint_ex) / mctrue_Nint_ex) * 100, bin_mask),
+        "N_inc": filter_data(((mctrue_Ninc - unfd_Ninc) / mctrue_Ninc) * 100, bin_mask),
+    }
+
+    # Error calculation with NaN handling
+    errors_true_reco = {
+        "N_ini": filter_data(np.nan_to_num((mcmeas_Nini_err / mctrue_Nini) * 100, nan=0.0), bin_mask),
+        "N_end": filter_data(np.nan_to_num((mcmeas_Nend_err / mctrue_Nend) * 100, nan=0.0), bin_mask),
+        "N_int_ex": filter_data(np.nan_to_num((mcmeas_Nint_ex_err / mctrue_Nint_ex) * 100, nan=0.0), bin_mask),
+        "N_inc": filter_data(np.nan_to_num((mcmeas_Ninc_err / mctrue_Ninc) * 100, nan=0.0), bin_mask),
+    }
+    errors_true_unfold = {
+        "N_ini": filter_data(np.nan_to_num((unfd_Nini_err / mctrue_Nini) * 100, nan=0.0), bin_mask),
+        "N_end": filter_data(np.nan_to_num((unfd_Nend_err / mctrue_Nend) * 100, nan=0.0), bin_mask),
+        "N_int_ex": filter_data(np.nan_to_num((unfd_Nint_ex_err / mctrue_Nint_ex) * 100, nan=0.0), bin_mask),
+        "N_inc": filter_data(np.nan_to_num((unfd_Ninc_err / mctrue_Ninc) * 100, nan=0.0), bin_mask),
+    }
+
+    # Create subplots
+    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+    axs = axs.flatten()
+    keys = ["N_ini", "N_end", "N_int_ex", "N_inc"]
+
+    for i, key in enumerate(keys):
+        # Plot True-Reco with error band
+        axs[i].step(filtered_bins, ratios_true_reco[key], where="mid", label="True-Reco", color="blue")
+        axs[i].fill_between(
+            filtered_bins,
+            ratios_true_reco[key] - errors_true_reco[key],
+            ratios_true_reco[key] + errors_true_reco[key],
+            step="mid",
+            color="blue",
+            alpha=0.2,
+            label="True-Reco Error Band",
+        )
+
+        # Plot True-Unfold with error band
+        axs[i].step(filtered_bins, ratios_true_unfold[key], where="mid", label="True-Unfold", color="green")
+        axs[i].fill_between(
+            filtered_bins,
+            ratios_true_unfold[key] - errors_true_unfold[key],
+            ratios_true_unfold[key] + errors_true_unfold[key],
+            step="mid",
+            color="green",
+            alpha=0.2,
+            label="True-Unfold Error Band",
+        )
+
+        # Set plot properties
+        axs[i].set_title(f"Comparison: {key}")
+        axs[i].set_xlabel("Kinetic Energy (MeV)")
+        axs[i].set_ylabel("Percentage Difference (%)")
+        axs[i].grid()
+        axs[i].legend()
+
+    plt.tight_layout()
+    plt.savefig("plots/ratios_comparison.pdf")
     plt.show()

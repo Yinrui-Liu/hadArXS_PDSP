@@ -5,8 +5,8 @@ use_real_data = True
 beampdg = 211
 binedges = np.linspace(0, 280, 50)
 xlabel = r"Reconstructed track length [cm]" ### also edit below the variable to plot
-procdataname = f"/home/saikat/HadANA_Versions/hadArXS_PDSP_old/procVars_piMC.pkl" # processed_files/procVars_pidata.pkl
-procMCname = f"/home/saikat/HadANA_Versions/hadArXS_PDSP_old/procVars_piMC.pkl" # processed_files/procVars_piMC.pkl
+procdataname = f"/home/saikat/HadANA_Versions/hadArXS_PDSP/processed_files/procVars_piMC_100MeVBin_6Proton.pkl" # processed_files/procVars_pidata.pkl
+procMCname = f"/home/saikat/HadANA_Versions/hadArXS_PDSP/processed_files/procVars_piMC_100MeVBin_6Proton.pkl" # processed_files/procVars_piMC.pkl
 
 partypedict_pionp = {
     0: "Data", 
