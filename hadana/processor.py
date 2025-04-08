@@ -32,9 +32,12 @@ class Processor:
         self.reco_sigflag = []
         self.reco_containing = []
         self.reco_track_length = []
+        self.reco_daughter_PFP_trackScore = np.array([])
         self.true_beam_PDG = np.array([])
         self.true_beam_daughter_PDG = np.array([])
         self.int_type = []
+        self.reco_daughter_allShower_energy = np.array([])
+        self.reco_daughter_PFP_nHits = np.array([])
         self.mask_TrueSignal = np.array([])
         self.mask_SelectedPart = np.array([])
         self.mask_FullSelection = np.array([])
@@ -88,7 +91,10 @@ class Processor:
             reco_beam_true_byE_origin = evt["reco_beam_true_byE_origin"]
             reco_beam_true_byE_PDG = evt["reco_beam_true_byE_PDG"]
             true_beam_PDG = evt["true_beam_PDG"]
+            reco_daughter_allShower_energy = evt["reco_daughter_allShower_energy"]
+            reco_daughter_PFP_nHits = evt["reco_daughter_PFP_nHits"]
             true_beam_daughter_PDG = evt["true_beam_daughter_PDG"]
+            reco_daughter_PFP_trackScore = evt["reco_daughter_PFP_trackScore"]
             #print("Shape of true_beam_daughter, PDG", true_beam_daughter_PDG)
             true_beam_endProcess = evt["true_beam_endProcess"]
             #print("Shape of true_beam_endProcess", true_beam_endProcess)
@@ -105,6 +111,7 @@ class Processor:
                 isFake = [True]*Nbatch
             elif self.fake_data is False:
                 isFake = [False]*Nbatch
+            self.int_type = self.particle.DaughterCutForPion(evt, self.isMC)
             for ievt in range(Nbatch):
                 if self.isMC:
                     ## calculate true length and true energies
@@ -206,41 +213,20 @@ class Processor:
                 self.reco_track_length.append(reco_trklen)
 
                 # get particle type
-                par_type = GetParticleType(self.particle.pdg, self.isMC, isFake[ievt], reco_beam_true_byE_matched[ievt], reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt], true_beam_PDG[ievt], true_beam_endProcess[ievt])
+                par_type = GetParticleType(self.particle.pdg, self.isMC, isFake[ievt], reco_beam_true_byE_matched[ievt],
+                                            reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt],
+                                            true_beam_PDG[ievt], true_beam_endProcess[ievt], self.int_type[ievt])
                 self.particle_type.append(par_type)
-
-
-                n_pi_plus = 0
-                n_pi_zero = 0
-                n_pi_minus = 0
-                for particle in true_beam_daughter_PDG[ievt]:
-                    if particle == -211:
-                        n_pi_minus += 1
-                    elif particle == 211:
-                        n_pi_plus += 1
-                    elif particle == 111:
-                        n_pi_zero += 1
-                int_type = None
-                if n_pi_plus == 1 and n_pi_zero == 0 and n_pi_minus == 0:
-                    int_type = "inel"
-                elif n_pi_plus == 0 and n_pi_zero == 1 and n_pi_minus == 0:
-                    int_type = "cex"
-                elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 1:
-                    int_type = "dcex"
-                elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 0:
-                    int_type = "abs"
-                elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
-                    int_type = "prod"
               
-                self.int_type.append(int_type)
+                # self.int_type.append(int_type)
                 if self.particle.pdg == 211:
-                    if true_beam_endProcess[ievt]=="pi+Inelastic": # use this line to do multiple channels
+                    if true_beam_endProcess[ievt]=="pi+Inelastic":
                         true_flag = 1
                     else:
                         true_flag = 0
                     reco_flag = 1
                 elif self.particle.pdg == 2212:
-                    if true_beam_endProcess[ievt]=="protonInelastic": # use this line to do multiple channels
+                    if true_beam_endProcess[ievt]=="protonInelastic":
                         true_flag = 1
                     else:
                         true_flag = 0
@@ -278,6 +264,9 @@ class Processor:
             self.mask_FullSelection = np.concatenate([self.mask_FullSelection, mask_FullSelection])
             self.true_beam_PDG = np.concatenate([self.true_beam_PDG, true_beam_PDG])
             self.true_beam_daughter_PDG = np.concatenate([self.true_beam_daughter_PDG, true_beam_daughter_PDG])
+            self.reco_daughter_allShower_energy = np.concatenate([self.reco_daughter_allShower_energy, reco_daughter_allShower_energy])
+            self.reco_daughter_PFP_nHits = np.concatenate([self.reco_daughter_PFP_nHits, reco_daughter_PFP_nHits])
+            self.reco_daughter_PFP_trackScore = np.concatenate([self.reco_daughter_PFP_trackScore, reco_daughter_PFP_trackScore])
             # self.int_type = np.concatenate([self.int_type, int_type])
             self.g4rw_full_grid_piplus_coeffs = np.concatenate([self.g4rw_full_grid_piplus_coeffs, g4rw_full_grid_piplus_coeffs])
             self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
@@ -320,6 +309,9 @@ class Processor:
         outVars["true_beam_PDG"] = self.true_beam_PDG
         outVars["true_beam_daughter_PDG"] = self.true_beam_daughter_PDG
         outVars["int_type"] = self.int_type
+        outVars["reco_daughter_allShower_energy"] = self.reco_daughter_allShower_energy
+        outVars["reco_daughter_PFP_nHits"] = self.reco_daughter_PFP_nHits
+        outVars["reco_daughter_PFP_trackScore"] = self.reco_daughter_PFP_trackScore
         outVars["mask_TrueSignal"] = self.mask_TrueSignal
         outVars["mask_SelectedPart"] = self.mask_SelectedPart
         outVars["mask_FullSelection"] = self.mask_FullSelection
@@ -344,34 +336,44 @@ def GetUpstreamEnergyLoss(beamKE, pdg, momentum=1): # 2nd polynominal parameters
         raise Exception(f"No mode implemented for pdg={pdg} momentum={momentum}.")
     return upEloss
 
-def GetParticleType(pdg_mode, isMC, isFake, beam_matched, isCosmic, true_particle_PDG, true_beam_PDG, true_beam_endProcess):
+def GetParticleType(pdg_mode, isMC, isFake, beam_matched, isCosmic, true_particle_PDG, true_beam_PDG, true_beam_endProcess, int_type):
     if not isMC:
-        return 0 # Data
-    
-    if pdg_mode == 211:
+        return 20 # Data 
+        # TODO CHANGE DATA TO be 0 rather than 20 and update all relevant locations and rerun load n_tuple
+
+    if pdg_mode == 211: # Non-Signal Channels, denoted by 2x
         if isFake:
-            return 0 # Data (fake)
+            return 20 # Data (fake)
         elif not beam_matched:
             if isCosmic:
-                return 4 # misID:cosmic
+                return 22 # misID:cosmic
             elif abs(true_particle_PDG) == 211:
-                return 6 # misID:pi
+                return 23 # misID:pi
             elif true_particle_PDG == 2212:
-                return 5 # misID:p
+                return 24 # misID:p
             elif abs(true_particle_PDG) == 13:
-                return 7 # misID:mu
+                return 25 # misID:mu
             elif abs(true_particle_PDG) == 11 or true_particle_PDG == 22:
-                return 8 # misID:e/γ
+                return 26 # misID:e/γ
             else:
-                return 9 # misID:other
+                return 27 # misID:other
         elif true_beam_PDG == -13:
-            return 3 # Muon
-        elif true_beam_PDG == 211:
+            return 21 # Muon
+        elif true_beam_PDG == 211: # Dividing into Exclusive Channels, denoted as 1x
             if true_beam_endProcess == "pi+Inelastic":
-                return 1 # PiInel (signal)
+                if int_type == 1:
+                    return 11 # Inelastic
+                elif int_type == 2:
+                    return 12 # Charge Exchange
+                elif int_type == 1: # Need to change this when you are able to separate dcex back out
+                    return 13 # Double Charge Exchange
+                elif int_type == 4:
+                    return 14 # Pion Absorption
+                elif int_type == 5:
+                    return 15 # Pion Production
             else:
-                return 2 # PiDecay
-        return 9
+                return 16 # PiDecay
+        return 27
             
     elif pdg_mode == 2212:
         if isFake:

@@ -82,6 +82,7 @@ class Particle:
         
         return np.array([len(calo_wire) != 0 for calo_wire in reco_beam_calo_wire])
 
+
     def PassBeamQualityCut(self, evt, parBQ, isMC, xyz_cut=True, angle_cut=True, scraper_cut=True):
         reco_beam_calo_startX = evt["reco_beam_calo_startX"]
         reco_beam_calo_startY = evt["reco_beam_calo_startY"]
@@ -174,6 +175,87 @@ class Particle:
         chi2_protons = np.where(mask, reco_beam_Chi2_proton / reco_beam_Chi2_ndof, -1)
         self.var_dict["chi2_protons"] = chi2_protons
         return chi2_protons > 80
+    
+    
+    # Pseudo Code for Daughter cut implementation
+    """
+    Interaction type classification guide:
+    Default, Pion Decay = 0
+    Inelastic, Double Charge Exchange = 1
+    Charge Exchange = 2
+    (Double Charge Exchange will eventually be 3)
+    Pion Absorbtion = 4
+    Pion Production = 5
+    """
+    def ClassifyType(self, n_pions, n_showers):
+        if n_pions == 1 and n_showers == 0: # Inelatic, Dcex
+            return 1
+        elif (n_pions == 1 or n_pions == 2) and n_showers == 0: # Cex
+            return 2
+        elif n_pions == 0 and n_showers == 0: # Abs
+            return 4
+        elif (n_pions + n_showers) > 1: # Prod
+            return 5
+        return 6
+
+    def DaughterCutForPion(self, evt, isMC):
+        # print("How many events in evt[var]?", len(evt["reco_daughter_PFP_trackScore"]))
+        # evt stores the variables you can access, each of those sub arrays has nevts entries
+        # This gives array of the events, same length as the number of events you wanted to investigate, I think
+        nevt = len(evt["event"])
+        int_types = []
+        if isMC:
+            true_beam_daughter_PDG = evt["true_beam_daughter_PDG"]
+            for ievt in range(nevt):
+                n_pi_plus = 0
+                n_pi_zero = 0
+                n_pi_minus = 0
+                for particle in true_beam_daughter_PDG[ievt]:
+                    if particle == -211:
+                        n_pi_minus += 1
+                    elif particle == 211:
+                        n_pi_plus += 1
+                    elif particle == 111:
+                        n_pi_zero += 1
+                if n_pi_plus == 1 and n_pi_zero == 0 and n_pi_minus == 0:
+                    int_type = 1 # inel
+                elif n_pi_plus == 0 and n_pi_zero == 1 and n_pi_minus == 0:
+                    int_type = 2 # cex
+                elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 1:
+                    int_type = 1 # dcex #Need to change this back to 3 later when we distingush the two channels
+                elif n_pi_plus == 0 and n_pi_zero == 0 and n_pi_minus == 0:
+                    int_type = 4 # abs
+                elif (n_pi_plus + n_pi_zero +n_pi_minus > 1):
+                    int_type = 5 # prod
+                else:
+                    int_type = 0 # decay, default
+                int_types.append(int_type)
+        """n_daughter_shower = np.zeros(nevt)
+        n_daughter_pion_track = np.zeros(nevt)  
+        n_daughter_proton_track = np.zeros(nevt)"""
+        track_arr = np.array(evt["reco_daughter_PFP_trackScore"])
+        chi2_arr = np.array(evt["reco_daughter_allTrack_Chi2_proton"])
+        dof_arr = np.array(evt["reco_daughter_allTrack_Chi2_ndof"])
+        for event in range(nevt):
+            n_pi_tracks = 0
+            n_showers = 0
+            tracks = track_arr[event]
+            for track in range(len(tracks)):
+                if tracks[track] > 0.5:
+                    chi2 = chi2_arr[event][track]
+                    dof = dof_arr[event][track]
+                    if utils.safe_divide(chi2, dof) > 80: # ensures we are looking at a pion track
+                        n_pi_tracks += 1
+                    """
+                    # elif utils.safe_divide(chi2, dof) < 10: #categorizes proton tracks
+                    else:
+                        n_daughter_proton_track[i]+=1"""
+                else:
+                    n_showers += 1
+            int_types.append(self.ClassifyType(n_pi_tracks, n_showers))
+
+        return int_types
+
 
     def PassStoppingProtonCut(self, evt, reco_trklen):
         beam_inst_P = evt["beam_inst_P"]

@@ -5,10 +5,10 @@ import hadana.MC_reweight as reweight
 
 
 # pduneana_MC_20g4rw, PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04, PDSPProd4_data_1GeV_reco2_ntuple_AltSCEData
-PDSP_ntuple_name = "PDSPProd4_data_1GeV_reco2_ntuple_v09_41_00_04"
+PDSP_ntuple_name = "pduneana_MC_20g4rw"
 beamPDG = 211
-outfilename = "processed_files/procVars_piPDSP.pkl"
-Nevents = None # change Nevents for smaller sample size
+outfilename = "processed_files/procVars_piMC_selected.pkl"
+Nevents = 302141 # change Nevents for smaller sample size
 
 
 PDSP_ntuple = uproot.open(f"input_files/{PDSP_ntuple_name}.root")
@@ -19,6 +19,8 @@ else:
 pduneana = PDSP_ntuple["pduneana/beamana"]
 
 variables_to_load = [
+    "run",
+    "subrun",
     "event",
     "reco_beam_calo_wire",
     "reco_beam_type",
@@ -55,6 +57,11 @@ variables_to_load = [
     "reco_beam_true_byE_matched",
     "reco_beam_true_byE_origin",
     "reco_beam_true_byE_PDG",
+    "reco_daughter_allTrack_Chi2_proton",
+    "reco_daughter_allTrack_Chi2_ndof",
+    "reco_daughter_allShower_energy",
+    "reco_daughter_PFP_nHits",
+    "reco_daughter_PFP_trackScore",
     "true_beam_endProcess",
     "g4rw_full_grid_piplus_coeffs",
     "g4rw_full_grid_proton_coeffs",
