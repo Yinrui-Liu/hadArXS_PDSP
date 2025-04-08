@@ -203,7 +203,8 @@ class Particle:
         # evt stores the variables you can access, each of those sub arrays has nevts entries
         # This gives array of the events, same length as the number of events you wanted to investigate, I think
         nevt = len(evt["event"])
-        int_types = []
+        true_int_types = []
+        reco_int_types = []
         if isMC:
             true_beam_daughter_PDG = evt["true_beam_daughter_PDG"]
             for ievt in range(nevt):
@@ -229,7 +230,7 @@ class Particle:
                     int_type = 5 # prod
                 else:
                     int_type = 0 # decay, default
-                int_types.append(int_type)
+                true_int_types.append(int_type)
         """n_daughter_shower = np.zeros(nevt)
         n_daughter_pion_track = np.zeros(nevt)  
         n_daughter_proton_track = np.zeros(nevt)"""
@@ -252,9 +253,9 @@ class Particle:
                         n_daughter_proton_track[i]+=1"""
                 else:
                     n_showers += 1
-            int_types.append(self.ClassifyType(n_pi_tracks, n_showers))
+            reco_int_types.append(self.ClassifyType(n_pi_tracks, n_showers))
 
-        return int_types
+        return true_int_types, reco_int_types
 
 
     def PassStoppingProtonCut(self, evt, reco_trklen):
