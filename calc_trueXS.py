@@ -1,10 +1,11 @@
 from hadana.packages import *
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
+from hadana.multiD_mapping import get_SID2Dmap
 
 selected_type = "inel" # Sets the type of interaction being analyzed.
 beamPDG = 211
-file_name_prefix = "processed_files/procVars_piMC_"
+file_name_prefix = "processed_files/procVars_piMC_test"
 file_name_suffix = ".pkl"
 if selected_type == "incl": file_name = "processed_files/procVars_piMC" + file_name_suffix
 else: file_name = file_name_prefix + selected_type + file_name_suffix
@@ -14,7 +15,8 @@ if beamPDG == 211:
     true_bins = np.array([1000,950,900,850,800,750,700,650,600,550,500,450,400,350,300,250,200,150,100,50,0])
 elif beamPDG == 2212:
     true_bins = np.array([500,475,450,425,400,375,350,325,300,275,250,225,200,175,150,125,100,75,50,25,0])
-
+Ntrueinttype = 6 # number of true interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
+signal_int_type = 1 # same as the selected_type
 
 mask_TrueSignal = processedVars["mask_TrueSignal"]
 type_mask = [int_type == selected_type for int_type in processedVars["int_type"]]
@@ -49,8 +51,10 @@ Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
 true_SIDini, true_SIDend, true_SIDint_ex = slicing.get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_isCt, true_bins)
 #here goes the exclusive selections
 true_Nini, true_Nend, true_Nint_ex, true_Ninc = slicing.derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
-true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
-true_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
+SID2Dmap, Ntruebins_2D = get_SID2Dmap(Ntruebins)
+Ntruebins_3D = Ntruebins_2D * Ntrueinttype # number of bins for the combined 3D variable (IDini, IDend, int_type)
+true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_flag, Ntruebins_2D, Ntruebins_3D, true_weight)
+true_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins, Ntruebins_2D, Ntruebins_3D, SID2Dmap, signal_int_type) # here signal_int_type should be an integer. TB considered to enable the case of inclusive.
 true_3N_Vcov = slicing.get_Cov_3N_from_3SID(true_3SID_Vcov, Ntruebins)
 true_XS, true_XS_Vcov = slicing.calculate_XS_Cov_from_3N(true_Ninc, true_Nend, true_Nint_ex, true_3N_Vcov, true_bins, BetheBloch(beamPDG))
 

@@ -68,11 +68,11 @@ def derive_energy_histograms(f_SIDini, f_SIDend, f_SIDint_ex, Nbins, f_evtweight
             f_Ninc[ibin] -= f_Nini[itmp]'''
     return f_Nini, f_Nend, f_Nint_ex, f_Ninc
 
-def get_3D_histogram(f_SIDini, f_SIDend, f_SIDint_ex, Nbins, f_evtweight=None):
+def get_3D_histogram(f_SIDini, f_SIDend, f_int_type, Nbins_2D, Nbins_3D, f_evtweight=None):
     f_Nevts = len(f_SIDini)
     if f_evtweight is None:
         f_evtweight = np.ones(f_Nevts)
-    Nbins_3D = Nbins**3
+
     f_N3D = np.zeros(Nbins_3D)
     f_N3D_errsq = np.zeros(Nbins_3D)
     f_SID3D = np.zeros(f_Nevts, dtype=np.int32)
@@ -80,10 +80,10 @@ def get_3D_histogram(f_SIDini, f_SIDend, f_SIDint_ex, Nbins, f_evtweight=None):
     for ievt in range(f_Nevts): # fill in the combined variable
         SID_ini = f_SIDini[ievt] + 1 # so that null bin moves to 0 (covenient for integer division and modulus below)
         SID_end = f_SIDend[ievt] + 1
-        SID_int_ex = f_SIDint_ex[ievt] + 1
+        int_type = f_int_type[ievt]
         weight = f_evtweight[ievt]
         
-        SID3D = SID_ini + Nbins * SID_end + Nbins*Nbins * SID_int_ex # definition of the combined variable
+        SID3D = SID_ini + (SID_end*(SID_end+1))//2 + Nbins_2D*int_type # definition of the combined variable
         f_SID3D[ievt] = SID3D
         
         f_N3D[SID3D] += weight
@@ -92,20 +92,23 @@ def get_3D_histogram(f_SIDini, f_SIDend, f_SIDint_ex, Nbins, f_evtweight=None):
     f_N3D_Vcov = np.diag(f_N3D_errsq) # this is a fill process. Each bin is independent, so the covariance matrix is diagonal
     return f_SID3D, f_N3D, f_N3D_Vcov
 
-def get_Cov_3SID_from_N3D(f_N3D_Vcov, Nbins):
-    Nbins_3D = Nbins**3
+def get_Cov_3SID_from_N3D(f_N3D_Vcov, Nbins, Nbins_2D, Nbins_3D, SID2Dmap, signal_int_type):
     Jac_N3D_3SID = np.zeros([3*Nbins, Nbins_3D])
     for jbin in range(Nbins_3D):
-        ## use integer division and modulus to project back to 1D histograms
-        ibx = jbin % Nbins # get SID_ini
-        iby = (jbin // Nbins) % Nbins # get SID_end
-        ibz = (jbin // Nbins // Nbins) % Nbins # get SID_int_ex
-        Jac_N3D_3SID[ibx, jbin] = 1
-        Jac_N3D_3SID[Nbins+iby, jbin] = 1
-        Jac_N3D_3SID[2*Nbins+ibz, jbin] = 1
+        i_int = jbin // Nbins_2D
+        i_2D = jbin % Nbins_2D
+        i_ini, i_end = SID2Dmap[i_2D] # retrieve (IDini, IDend) from index of the 2D variable
+
+        Jac_N3D_3SID[i_ini, jbin] = 1
+        Jac_N3D_3SID[Nbins+i_end, jbin] = 1
+
+        if i_int == signal_int_type: # whether the interaction is signal or not
+            Jac_N3D_3SID[2*Nbins+i_end, jbin] = 1
+        else:
+            Jac_N3D_3SID[2*Nbins, jbin] = 1
     
     ### derive the covariance matrix 3SID_Vcov
-    #f_3SID_Vcov = np.einsum("ij,jk,lk->il", Jac_N3D_3SID, f_N3D_Vcov, Jac_N3D_3SID) # computation too slow
+    #f_3SID_Vcov = np.einsum("ij,jk,lk->il", Jac_N3D_3SID, f_N3D_Vcov, Jac_N3D_3SID) # computation a bit too slow
     f_3SID_Vcov = np.einsum("ij,jk->ik", Jac_N3D_3SID, f_N3D_Vcov)
     f_3SID_Vcov = np.einsum("ij,kj->ik", f_3SID_Vcov, Jac_N3D_3SID)
     return f_3SID_Vcov
