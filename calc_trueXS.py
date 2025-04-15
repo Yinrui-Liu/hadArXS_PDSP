@@ -2,12 +2,16 @@ from hadana.packages import *
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
 
-selected_type = "inel" # Sets the type of interaction being analyzed.
+selected_type = "incl" # Sets the type of interaction being analyzed.
+conversion_dict = {"abs": 4, "cex": 2, "dcex": 1,
+              "inel": 1, "prod": 5, "incl": -1}
+type_int = conversion_dict[selected_type]
 beamPDG = 211
-file_name_prefix = "processed_files/procVars_piMC_"
+file_name_prefix = "processed_files/procVars_piMC_" # TODO Deprecated, remove at earliest convinience.
 file_name_suffix = ".pkl"
 if selected_type == "incl": file_name = "processed_files/procVars_piMC" + file_name_suffix
 else: file_name = file_name_prefix + selected_type + file_name_suffix
+file_name = "processed_files/procVars_piMC_test2.pkl"
 with open(file_name, 'rb') as procfile:
     processedVars = pickle.load(procfile)
 if beamPDG == 211:
@@ -17,42 +21,53 @@ elif beamPDG == 2212:
 
 
 mask_TrueSignal = processedVars["mask_TrueSignal"]
-type_mask = [int_type == selected_type for int_type in processedVars["int_type"]]
+# type_mask = [int_type == type_int for int_type in processedVars["true_int_type"]]
 
 true_initial_energy = processedVars["true_initial_energy"]
 true_end_energy = processedVars["true_end_energy"]
 true_sigflag = processedVars["true_sigflag"]
 channel_mask = []
+
 if selected_type != "incl":
-    for i, int_type in enumerate(processedVars["int_type"]):
-        channel_mask.append((int_type==selected_type) and true_sigflag[i])
+    for i, int_type in enumerate(processedVars["true_int_type"]):
+        channel_mask.append((int_type==type_int) and true_sigflag[i])
     channel_mask = np.array(channel_mask)
 else: channel_mask = true_sigflag
-# selected_ex = [channel == selected_type for channel in processedVars["int_type"]]
+
 true_containing = processedVars["true_containing"]
-#particle_type = processedVars["particle_type"]
-particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
+particle_type = processedVars["particle_type"]
+# particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
 reweight = processedVars["reweight"]
 
 divided_trueEini, divided_weights = utils.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueEend, divided_weights = utils.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueflag, divided_weights = utils.divide_vars_by_partype(channel_mask, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueisct, divided_weights = utils.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
-true_Eini = divided_trueEini[0]
-true_Eend = divided_trueEend[0]
-true_flag = divided_trueflag[0]
-true_isCt = divided_trueisct[0]
-true_weight = divided_weights[0]
-# print(len(true_Eini), true_Eini, true_Eend, true_flag, true_isCt, true_weight, sep='\n')
+true_Eini = np.array([])
+true_Eend = np.array([])
+true_flag = np.array([])
+true_isCt = np.array([])
+true_weight = np.array([])
+for interaction_type in range(1, 6):
+    true_Eini = np.append(true_Eini, divided_trueEini[interaction_type])
+    true_Eend = np.append(true_Eend, divided_trueEend[interaction_type])
+    true_flag = np.append(true_flag, divided_trueflag[interaction_type])
+    true_isCt = np.append(true_isCt, divided_trueisct[interaction_type])
+    true_weight = np.append(true_weight, divided_weights[interaction_type])
+
 
 Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
+
 true_SIDini, true_SIDend, true_SIDint_ex = slicing.get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_isCt, true_bins)
 #here goes the exclusive selections
+
 true_Nini, true_Nend, true_Nint_ex, true_Ninc = slicing.derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
 true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
 true_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
 true_3N_Vcov = slicing.get_Cov_3N_from_3SID(true_3SID_Vcov, Ntruebins)
 true_XS, true_XS_Vcov = slicing.calculate_XS_Cov_from_3N(true_Ninc, true_Nend, true_Nint_ex, true_3N_Vcov, true_bins, BetheBloch(beamPDG))
+print("true_XS:", true_XS)
+
 
 if beamPDG == 211:
     simcurvefile_name = "input_files/exclusive_xsec.root"
@@ -91,6 +106,7 @@ sim_curve_dict = {"incl": incl_simcurve, "abs": abs_simcurve,"cex": cex_simcurve
 XS_diff = XS_y - np.interp(XS_x, sim_curve_dict[selected_type][0], sim_curve_dict[selected_type][1])
 inv_XS_Vcov = np.linalg.pinv(true_XS_Vcov[1:-1, 1:-1])
 chi2 = np.einsum("i,ij,j->", XS_diff, inv_XS_Vcov, XS_diff)
+print("CHI2:", chi2)
 print(f"Chi2/Ndf = {chi2}/{len(XS_diff)}")
 title_dict = {"abs": "Pion Absorption", "cex": "Charge Exchange", "dcex": "Double Charge Exchange",
               "inel": "Pion Inelastic", "prod": "Pion Production", "incl": "Inclusive Cross Section"}

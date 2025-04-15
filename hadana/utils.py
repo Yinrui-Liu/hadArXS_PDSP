@@ -143,14 +143,14 @@ def cal_chi2_2hists(arr_1, arr_2, weight_1, weight_2, bins, fit_range=None, scal
 
 ### previously in get_histograms.py
 def divide_vars_by_partype(vars, particle_type, mask=None, weight=None):
-    ntypes = max(particle_type)+1
+    ntypes = [20, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27] # changed to adapt new GetParType, only works for pion beam
     divided_vars = []
     divided_weights = []
     if mask is None:
         mask = np.ones_like(vars, dtype=bool)
-    for itype in range(ntypes):
-        divided_vars.append( vars[mask & (particle_type==itype)] )
-        divided_weights.append( weight[mask & (particle_type==itype)] )
+    for itype in ntypes:
+        divided_vars.append(vars[mask & (particle_type==itype)] )
+        divided_weights.append(weight[mask & (particle_type==itype)] )
         #hist, _ = np.histogram(vars[mask & (particle_type==itype)], binedges, weights=weight[mask & (particle_type==itype)])
         #hists.append(hist)
     return divided_vars, divided_weights

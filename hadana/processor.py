@@ -112,7 +112,7 @@ class Processor:
                 isFake = [True]*Nbatch
             elif self.fake_data is False:
                 isFake = [False]*Nbatch
-            self.true_int_type, self.reco_int_type = self.particle.DaughterCutForPion(evt, self.isMC) # This is the line that does the exdclusive classification
+            true_int_type, reco_int_type = self.particle.DaughterCutForPion(evt, self.isMC) # This is the line that does the exdclusive classification
             for ievt in range(Nbatch):
                 if self.isMC:
                     ## calculate true length and true energies
@@ -216,7 +216,7 @@ class Processor:
                 # get particle type
                 par_type = GetParticleType(self.particle.pdg, self.isMC, isFake[ievt], reco_beam_true_byE_matched[ievt],
                                             reco_beam_true_byE_origin[ievt]==2, reco_beam_true_byE_PDG[ievt],
-                                            true_beam_PDG[ievt], true_beam_endProcess[ievt], self.true_int_type[ievt])
+                                            true_beam_PDG[ievt], true_beam_endProcess[ievt], true_int_type[ievt])
                 self.particle_type.append(par_type)
               
                 if self.particle.pdg == 211:
@@ -235,7 +235,6 @@ class Processor:
                     raise Exception(f"No mode implemented for pdg={self.particle.pdg}.")
                 self.true_sigflag.append(true_flag)
                 self.reco_sigflag.append(reco_flag)
-
 
             # selection
             if self.isMC:
@@ -268,6 +267,7 @@ class Processor:
             self.reco_daughter_PFP_nHits = np.concatenate([self.reco_daughter_PFP_nHits, reco_daughter_PFP_nHits])
             self.reco_daughter_PFP_trackScore = np.concatenate([self.reco_daughter_PFP_trackScore, reco_daughter_PFP_trackScore])
             self.true_int_type = np.concatenate([self.true_int_type, true_int_type])
+            self.reco_int_type = np.concatenate([self.reco_int_type, reco_int_type])
             self.g4rw_full_grid_piplus_coeffs = np.concatenate([self.g4rw_full_grid_piplus_coeffs, g4rw_full_grid_piplus_coeffs])
             self.g4rw_full_grid_proton_coeffs = np.concatenate([self.g4rw_full_grid_proton_coeffs, g4rw_full_grid_proton_coeffs])
             self.true_beam_startP = np.concatenate([self.true_beam_startP, true_beam_startP])
@@ -309,6 +309,7 @@ class Processor:
         outVars["true_beam_PDG"] = self.true_beam_PDG
         outVars["true_beam_daughter_PDG"] = self.true_beam_daughter_PDG
         outVars["true_int_type"] = self.true_int_type
+        outVars["reco_int_type"] = self.reco_int_type
         outVars["reco_daughter_allShower_energy"] = self.reco_daughter_allShower_energy
         outVars["reco_daughter_PFP_nHits"] = self.reco_daughter_PFP_nHits
         outVars["reco_daughter_PFP_trackScore"] = self.reco_daughter_PFP_trackScore
