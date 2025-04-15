@@ -1,6 +1,7 @@
 from hadana.packages import *
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
+from hadana.multiD_mapping import get_SID2Dmap
 
 selected_type = "prod" # Sets the type of interaction being analyzed.
 conversion_dict = {"abs": 4, "cex": 2, "dcex": 1,
@@ -19,6 +20,8 @@ if beamPDG == 211:
 elif beamPDG == 2212:
     true_bins = np.array([500,475,450,425,400,375,350,325,300,275,250,225,200,175,150,125,100,75,50,25,0])
 
+Ntrueinttype = 6 # number of true interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
+signal_int_type = 5 # same as the selected_type
 
 mask_TrueSignal = processedVars["mask_TrueSignal"]
 # type_mask = [int_type == type_int for int_type in processedVars["true_int_type"]]
@@ -35,25 +38,32 @@ if selected_type != "incl":
 else: channel_mask = true_sigflag
 
 true_containing = processedVars["true_containing"]
-particle_type = processedVars["particle_type"]
-# particle_type = np.zeros_like(true_sigflag) # use all MC (not just truth MC)
+# particle_type = processedVars["particle_type"]
+particle_type = np.zeros_like(true_sigflag) + 20 # use all MC (not just truth MC)
 reweight = processedVars["reweight"]
 
 divided_trueEini, divided_weights = utils.divide_vars_by_partype(true_initial_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueEend, divided_weights = utils.divide_vars_by_partype(true_end_energy, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueflag, divided_weights = utils.divide_vars_by_partype(channel_mask, particle_type, mask=mask_TrueSignal, weight=reweight)
 divided_trueisct, divided_weights = utils.divide_vars_by_partype(true_containing, particle_type, mask=mask_TrueSignal, weight=reweight)
-true_Eini = np.array([])
-true_Eend = np.array([])
-true_flag = np.array([])
-true_isCt = np.array([])
-true_weight = np.array([])
-for interaction_type in range(0, 14):
+true_Eini = divided_trueEini[0]
+true_Eend = divided_trueEend[0]
+true_flag = divided_trueflag[0]
+true_isCt = divided_trueisct[0]
+true_weight = divided_weights[0]
+
+"""
+true_Eini = np.array([0])
+true_Eend = np.array([0])
+true_flag = np.array([0])
+true_isCt = np.array([0])
+true_weight = np.array([0])
+    for interaction_type in range(0, 14):
     true_Eini = np.append(true_Eini, divided_trueEini[interaction_type])
     true_Eend = np.append(true_Eend, divided_trueEend[interaction_type])
     true_flag = np.append(true_flag, divided_trueflag[interaction_type])
     true_isCt = np.append(true_isCt, divided_trueisct[interaction_type])
-    true_weight = np.append(true_weight, divided_weights[interaction_type])
+    true_weight = np.append(true_weight, divided_weights[interaction_type])"""
 
 
 Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
@@ -62,8 +72,16 @@ true_SIDini, true_SIDend, true_SIDint_ex = slicing.get_sliceID_histograms(true_E
 #here goes the exclusive selections
 
 true_Nini, true_Nend, true_Nint_ex, true_Ninc = slicing.derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
-true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
-true_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
+
+
+#true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
+#true_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins)
+
+SID2Dmap, Ntruebins_2D = get_SID2Dmap(Ntruebins)
+Ntruebins_3D = Ntruebins_2D * Ntrueinttype # number of bins for the combined 3D variable (IDini, IDend, int_type)
+true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_flag, Ntruebins_2D, Ntruebins_3D, true_weight)
+true_3SID_Vcov = slicing.get_Cov_3SID_from_N3D(true_N3D_Vcov, Ntruebins, Ntruebins_2D, Ntruebins_3D, SID2Dmap, signal_int_type) # here signal_int_type should be an integer. TB considered to enable the case of inclusive.
+
 true_3N_Vcov = slicing.get_Cov_3N_from_3SID(true_3SID_Vcov, Ntruebins)
 true_XS, true_XS_Vcov = slicing.calculate_XS_Cov_from_3N(true_Ninc, true_Nend, true_Nint_ex, true_3N_Vcov, true_bins, BetheBloch(beamPDG))
 print("true_XS:", true_XS)

@@ -84,6 +84,7 @@ def get_3D_histogram(f_SIDini, f_SIDend, f_int_type, Nbins_2D, Nbins_3D, f_evtwe
         weight = f_evtweight[ievt]
         
         SID3D = SID_ini + (SID_end*(SID_end+1))//2 + Nbins_2D*int_type # definition of the combined variable
+        SID3D = int(SID3D)
         f_SID3D[ievt] = SID3D
         
         f_N3D[SID3D] += weight
