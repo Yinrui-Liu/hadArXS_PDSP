@@ -3,26 +3,30 @@ import hadana.parameters as parameters
 
 use_real_data = True
 beampdg = 211
-binedges = np.linspace(0, 280, 50)
-xlabel = r"Reconstructed track length [cm]" ### also edit below the variable to plot
-procdataname = f"processed_files/procVars_piPDSP.pkl" # processed_files/procVars_pidata.pkl
-procMCname = f"processed_files/procVars_piMC.pkl" # processed_files/procVars_piMC.pkl
+binedges = np.linspace(0, 1, 11) # edit here to adjust the bounds of the plot
+xlabel = r"EM Score" ### also edit below the variable to plot
+procdataname = f"processed_files/procVars_piPDSP_test.pkl" # processed_files/procVars_pidata.pkl
+procMCname = f"processed_files/procVars_piMC_test.pkl" # processed_files/procVars_piMC.pkl
 
 partypedict_pionp = {
-    0: "Data", 
-    1: "Pion inelastic", 
-    2: "Pion decay", 
-    3: "Muon", 
-    4: "misID:cosmic", 
-    5: "misID:proton", 
-    6: "misID:pion", 
-    7: "misID:muon", 
-    8: "misID:e/γ", 
-    9: "misID:other", 
+    20: "Data", 
+    11: "Pion Inelastic",
+    12: "Charge Exchange",
+    13: "Double Charge Exchange",
+    14: "Pion Absoprtion",
+    15: "Pion Production",
+    16: "Pion Decay", 
+    21: "Muon", 
+    22: "misID:cosmic",
+    23: "misID:pion",  
+    24: "misID:proton",
+    25: "misID:muon", 
+    26: "misID:e/γ", 
+    27: "misID:other", 
 }
-partypedict_proton = {
+partypedict_proton = { # need to edit this to work with proton beam
     0: "Data", 
-    1: "Proton inelatic", 
+    1: "Proton Inelastic", 
     2: "Stopping proton", 
     3: "misID:cosmic", 
     4: "misID:proton", 
@@ -32,9 +36,13 @@ partypedict_proton = {
     8: "misID:other", 
 }
 parcolordict = {
-    "Pion inelastic": "r",
-    "Proton inelatic": "r",
-    "Pion decay": "orange",
+    "Pion Inelastic": "indigo",
+    "Charge Exchange": "turquoise",
+    "Double Charge Exchange": "dodgerblue",
+    "Pion Absoprtion": "cornsilk",
+    "Pion Production": "olive",
+    "Proton Inelastic": "r",
+    "Pion Decay": "orange",
     "Stopping proton": "orange",
     "Muon": "springgreen",
     "misID:cosmic": "deepskyblue",
@@ -45,6 +53,8 @@ parcolordict = {
     "misID:other": "peru",
 }
 variables_to_load = [
+    "run",
+    "subrun",
     "event",
     "reco_beam_calo_wire",
     "reco_beam_type",
@@ -80,6 +90,9 @@ variables_to_load = [
     "reco_beam_true_byE_matched",
     "reco_beam_true_byE_origin",
     "reco_beam_true_byE_PDG",
+    "reco_daughter_allShower_energy",
+    "reco_daughter_PFP_nHits",
+    "reco_daughter_PFP_trackScore",
     "true_beam_endProcess",
     "g4rw_full_grid_piplus_coeffs",
     "g4rw_full_grid_proton_coeffs",
@@ -103,9 +116,21 @@ if use_real_data:
     combined_mask_data = mask_SelectedPart_data & mask_FullSelection_data
     particle_type_data = processedVars_data["particle_type"]
     reweight_data = processedVars_data["reweight"]
+    # try PRINT()LEN of combined mask data and particle type data to make sure they match expected for the data sets
+    #print("$$$", len(combined_mask_data), combined_mask_data)
+    #print("$$$", len(particle_type_data), particle_type_data)
+    #print("$$$", len(reweight_data), reweight_data)
 
 with open(procMCname, 'rb') as mcfile:
     processedVars_mc = pickle.load(mcfile)
+"""count = 0
+for i, val in enumerate(processedVars_mc["int_type"]):
+    if count > 10:
+        break
+    if val == "prod":
+        print("prod index=", i)
+        count +=1"""
+
 mask_SelectedPart_mc = processedVars_mc["mask_SelectedPart"]
 mask_FullSelection_mc = processedVars_mc["mask_FullSelection"]
 combined_mask_mc = mask_SelectedPart_mc & mask_FullSelection_mc
@@ -141,9 +166,74 @@ if False: # to draw the angle variable
     beamdir = [beamdir_data.tolist()]*len(dir)
     beam_costh_data = np.einsum('ij,ij->i', dir, beamdir)
 
-varhist_mc = processedVars_mc["reco_track_length"] # examples: processedVars_mc["reco_track_length"], np.array(pduneana_mc["beam_inst_P"]), (np.array(pduneana_mc["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_mc"])/parameters.pionBQ["beam_startX_rms_mc"], np.where(np.array(pduneana_mc["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_mc["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_mc["reco_beam_calo_wire"])]), np.array(pduneana_mc["reco_beam_Chi2_proton"]) / np.array(pduneana_mc["reco_beam_Chi2_ndof"]), -1)
+true_daughter_protons = []
+for event in processedVars_mc["true_beam_daughter_PDG"]:
+    n_protons = 0
+    for daughter in event:
+        if daughter == 2212:
+            n_protons += 1
+    true_daughter_protons.append(n_protons)
+
+# print("Length of true daughter protons:", len(true_daughter_protons))
+# print(np.array(pduneana_mc["reco_daughter_PFP_emScore"])[3])
+'''mc_showers = []
+mc_tracks = []
+#print("\nArray for particular event:", np.array(pduneana_mc["reco_daughter_PFP_emScore"]),"\n")
+for i, val in enumerate(np.array(pduneana_mc["reco_daughter_PFP_emScore"])): #what are the contents of each reco_daughter_PFP_score?
+    # why is it a sub array composed of some empty values and then some values that have more than 1 entry?
+    for j, val2 in enumerate(val):
+        if val2 != None:
+            if val2 > 0.5:
+                mc_showers.append()
+            else:
+                mc_tracks.append(i)
+print(mc_showers)'''
+
+nevt = len(processedVars_mc["mask_SelectedPart"]) # full mc set has 302141 events
+n_daughter_shower = np.zeros(nevt)
+n_daughter_pion_track = np.zeros(nevt)  
+n_daughter_proton_track = np.zeros(nevt)    
+track_arr = np.array(pduneana_mc["reco_daughter_PFP_trackScore"])
+chi2_arr = np.array(pduneana_mc["reco_daughter_allTrack_Chi2_proton"])
+dof_arr = np.array(pduneana_mc["reco_daughter_allTrack_Chi2_ndof"])
+for i in range(nevt):
+    tracks = track_arr[i]
+    for j in range(len(tracks)):
+        if tracks[j] > 0.5:
+            chi2 = chi2_arr[i][j]
+            dof = dof_arr[i][j]
+            if utils.safe_divide(chi2, dof) > 80: # ensures we are looking at a pion track
+                n_daughter_pion_track[i]+=1
+            # elif utils.safe_divide(chi2, dof) < 10: #categorizes proton tracks
+            else:
+                n_daughter_proton_track[i]+=1
+        else:
+            n_daughter_shower[i] += 1
+
+
+#print(pduneana_mc.keys())
+varhist_mc = np.array([np.mean(v) for v in np.array(pduneana_mc["reco_daughter_PFP_emScore"])[:nevt]]) # examples: processedVars_mc["reco_track_length"], np.array(pduneana_mc["beam_inst_P"]), (np.array(pduneana_mc["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_mc"])/parameters.pionBQ["beam_startX_rms_mc"], np.where(np.array(pduneana_mc["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_mc["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_mc["reco_beam_calo_wire"])]), np.array(pduneana_mc["reco_beam_Chi2_proton"]) / np.array(pduneana_mc["reco_beam_Chi2_ndof"]), -1)
+# Things that work: vvvv
+# np.array([np.mean(v) for v in np.array(pduneana_mc["reco_daughter_allTrack_alt_len"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_mc["reco_daughter_allShower_energy"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_mc["reco_daughter_PFP_nHits"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_mc["reco_daughter_PFP_trackScore"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_mc["reco_daughter_PFP_emScore"])[:nevt]])
+# np.array(true_daughter_protons)
+# n_daughter_pion_track
+# n_daughter_shower
+
+#print("varhist_mc", np.shape(varhist_mc), varhist_mc)
 if use_real_data:
-    varhist_data = processedVars_data["reco_track_length"] # examples: processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"]), (np.array(pduneana_data["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_data"])/parameters.pionBQ["beam_startX_rms_data"], np.where(np.array(pduneana_data["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_data["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_data["reco_beam_calo_wire"])]), np.array(pduneana_data["reco_beam_Chi2_proton"]) / np.array(pduneana_data["reco_beam_Chi2_ndof"]), -1)
+    varhist_data = np.array([np.mean(v) for v in np.array(pduneana_data["reco_daughter_PFP_emScore"])[:nevt]]) # examples: processedVars_data["reco_track_length"], np.array(pduneana_data["beam_inst_P"]), (np.array(pduneana_data["reco_beam_calo_startX"])-parameters.pionBQ["beam_startX_data"])/parameters.pionBQ["beam_startX_rms_data"], np.where(np.array(pduneana_data["reco_beam_vertex_nHits"]) != 0, np.array(pduneana_data["reco_beam_vertex_michel_score_weight_by_charge"]), -999), np.where(np.array([len(calo_wire) != 0 for calo_wire in np.array(pduneana_data["reco_beam_calo_wire"])]), np.array(pduneana_data["reco_beam_Chi2_proton"]) / np.array(pduneana_data["reco_beam_Chi2_ndof"]), -1)
+# Things that work: vvvv
+# np.array([np.mean(v) for v in np.array(pduneana_data["reco_daughter_allTrack_alt_len"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_data["reco_daughter_allShower_energy"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_data["reco_daughter_PFP_nHits"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_data["reco_daughter_PFP_trackScore"])[:nevt]])
+# np.array([np.mean(v) for v in np.array(pduneana_data["reco_daughter_PFP_emScore"])[:nevt]])
+#print("varhist_mc", np.shape(varhist_mc), varhist_mc)
+#print("varhist_data", np.shape(varhist_data), varhist_data)
 
 # draw the data points and stacked MC histograms by event type in the comparison plot
 divided_vars_mc, divided_weights_mc = utils.divide_vars_by_partype(varhist_mc, particle_type_mc, mask=combined_mask_mc, weight=reweight_mc)
@@ -152,12 +242,17 @@ Nmc = sum(Nmc_sep)
 if use_real_data:
     divided_vars_data, divided_weights_data = utils.divide_vars_by_partype(varhist_data, particle_type_data, mask=combined_mask_data, weight=reweight_data)
     hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_data, divided_weights_data, binedges)
+    #print("vars", np.shape(divided_vars_data),"\n weights", np.shape(divided_weights_data))
     Ndata = sum(divided_weights_data[0])
 else:
     hists_data, hists_err_data, _ = utils.get_vars_hists(divided_vars_mc, divided_weights_mc, binedges)
     Ndata = sum(divided_weights_mc[0])
+#print("divided_vars_mc", np.shape(divided_vars_mc), divided_vars_mc)
+#print("divided_vars_data", np.shape(divided_vars_data), divided_vars_data)
+#print("hists_data", np.shape(hists_data), hists_data)
 hists_data = hists_data[0]
 hists_err_data = hists_err_data[0]
+#print("vars", np.shape(divided_vars_mc),"\n weights", np.shape(divided_weights_mc))
 hists_mc, hists_err_mc_sep, _ = utils.get_vars_hists(divided_vars_mc[1:], divided_weights_mc[1:], binedges)
 hists_err_mc = np.zeros_like(hists_err_mc_sep[0])
 for err in hists_err_mc_sep:
@@ -170,10 +265,29 @@ ax2 = plt.axes([0.11, 0.09, 0.86, 0.12])
 bincenters = (binedges[:-1]+binedges[1:])/2
 ax1.errorbar(bincenters, hists_data, yerr=hists_err_data, fmt='o', color='k', markersize=1, label=f"Data {Ndata:.0f}")
 MC_data_scale = Ndata / Nmc
-binmc, _, _ = ax1.hist(divided_vars_mc[1:], binedges, weights=[i*MC_data_scale for i in divided_weights_mc[1:]], label=[f'{pardict[i+1]} {MC_data_scale*Nmc_sep[i]:.0f}' for i in range(len(divided_vars_mc[1:]))], color=[f'{parcolordict[pardict[i+1]]}' for i in range(len(divided_vars_mc[1:]))], stacked=True) # binmc is cumulative hists_mc
+ntypes = [20, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27] # kind of magic array, needs to be in this order
+labels = []
+colors = []
+for i, data in enumerate(ntypes[1:]):
+    labels.append(f'{pardict[data]} {MC_data_scale*Nmc_sep[i]:.0f}')
+    colors.append(f'{parcolordict[pardict[data]]}')
+back_sum = sum([MC_data_scale*data for data in Nmc_sep[8:]])
+
+
+binmc, _, _ = ax1.hist(divided_vars_mc[1:], binedges, 
+                       weights=[i*MC_data_scale for i in divided_weights_mc[1:8]] + [i*MC_data_scale for i in divided_weights_mc[8:]],
+                       label=[f'{pardict[data]} {MC_data_scale*Nmc_sep[i]:.0f}' for i, data in enumerate(ntypes[1:8])] + [f"misIDs {back_sum:.0f}"],
+                       color=[f'{parcolordict[pardict[i]]}' for i in ntypes[1:8]] + ["Khaki"] * 6,
+                       stacked=True) # This is the normal one that plots with combined MisIDs
+
+"""binmc, _, _ = ax1.hist(divided_vars_mc[1:4:2], binedges, 
+                       weights=[i*MC_data_scale for i in divided_weights_mc[1:4:2]],
+                       label=[f'{pardict[data]} {MC_data_scale*Nmc_sep[i]:.0f}' for i, data in enumerate(ntypes[1:4:2])],
+                       color=[f'{parcolordict[pardict[i]]}' for i in ntypes[1:4:2]],
+                       stacked=True)""" # This one just outputs the inelastic and dcex channel, but can be adapted to other direct channel comparisons
 
 ratio_err = hists_data/binmc[-1] * np.sqrt(np.power(utils.safe_divide(hists_err_mc,binmc[-1]), 2) + np.power(utils.safe_divide(hists_err_data,hists_data), 2)) # error of the ratio
-ax2.errorbar(bincenters, utils.safe_divide(hists_data,binmc[-1]), yerr=ratio_err, fmt='o', color='k', markersize=1)
+# ax2.errorbar(bincenters, utils.safe_divide(hists_data,binmc[-1]), yerr=ratio_err, fmt='o', color='k', markersize=1)
 ax2.plot(binedges, np.ones_like(binedges), 'r:')
 
 ax1.set_xticks(np.arange(binedges[0], binedges[-1], 10), minor=True)

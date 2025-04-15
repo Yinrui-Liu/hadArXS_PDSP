@@ -2,7 +2,7 @@ from hadana.packages import *
 import hadana.slicing_method as slicing
 from hadana.BetheBloch import BetheBloch
 
-selected_type = "incl" # Sets the type of interaction being analyzed.
+selected_type = "prod" # Sets the type of interaction being analyzed.
 conversion_dict = {"abs": 4, "cex": 2, "dcex": 1,
               "inel": 1, "prod": 5, "incl": -1}
 type_int = conversion_dict[selected_type]
