@@ -19,6 +19,9 @@ if beamPDG == 211:
 elif beamPDG == 2212:
     true_bins = parameters.true_bins_proton
     meas_bins = parameters.meas_bins_proton
+Ntrueinttype = 6 # number of true interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
+Nrecointtype = 6 # number of reco interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
+signal_int_type = 1 # same as the selected_type
 
 mask_TrueSignal = processedVars["mask_TrueSignal"]
 mask_SelectedPart = processedVars["mask_SelectedPart"]
@@ -52,7 +55,9 @@ Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
 Nmeasbins = len(meas_bins)
 true_SIDini, true_SIDend, true_SIDint_ex = slicing.get_sliceID_histograms(true_Eini, true_Eend, true_flag, true_isCt, true_bins)
 true_Nini, true_Nend, true_Nint_ex, true_Ninc = slicing.derive_energy_histograms(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
-true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_SIDint_ex, Ntruebins, true_weight)
+_, Ntruebins_2D = multiD.get_SID2Dmap(Ntruebins)
+Ntruebins_3D = Ntruebins_2D * Ntrueinttype # number of bins for the combined 3D variable (IDini, IDend, int_type)
+true_SID3D, true_N3D, true_N3D_Vcov = slicing.get_3D_histogram(true_SIDini, true_SIDend, true_flag, Ntruebins_2D, Ntruebins_3D, true_weight)
 
 divided_recoEini, divided_weights = utils.divide_vars_by_partype(reco_initial_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
 divided_recoEend, divided_weights = utils.divide_vars_by_partype(reco_end_energy, particle_type_bool, mask=combined_true_mask, weight=reweight)
@@ -68,14 +73,16 @@ reco_weight = divided_weights[1][pass_selection]
 #print(len(reco_Eini), reco_Eini, reco_Eend, reco_flag, reco_weight, pass_selection, sep='\n')
 
 meas_SIDini, meas_SIDend, meas_SIDint_ex = slicing.get_sliceID_histograms(reco_Eini, reco_Eend, reco_flag, reco_isCt, meas_bins)
-meas_SID3D, meas_N3D, meas_N3D_Vcov = slicing.get_3D_histogram(meas_SIDini, meas_SIDend, meas_SIDint_ex, Nmeasbins, reco_weight)
+_, Nmeasbins_2D = multiD.get_SID2Dmap(Nmeasbins)
+Nmeasbins_3D = Nmeasbins_2D * Nrecointtype # number of bins for the combined 3D variable (IDini, IDend, int_type)
+meas_SID3D, meas_N3D, meas_N3D_Vcov = slicing.get_3D_histogram(meas_SIDini, meas_SIDend, reco_flag, Nmeasbins_2D, Nmeasbins_3D, reco_weight)
 
-true_3D1D_map, true_N1D, true_N1D_err, Ntruebins_1D = multiD.map_index_to_combined_variable(true_N3D, np.sqrt(np.diag(true_N3D_Vcov)), Ntruebins)
-meas_3D1D_map, meas_N1D, meas_N1D_err, Nmeasbins_1D = multiD.map_index_to_combined_variable(meas_N3D, np.sqrt(np.diag(meas_N3D_Vcov)), Nmeasbins)
+true_3D1D_map, true_N1D, true_N1D_err, Ntruebins_1D = multiD.map_index_to_combined_variable(true_N3D, np.sqrt(np.diag(true_N3D_Vcov)), Ntruebins_3D)
+meas_3D1D_map, meas_N1D, meas_N1D_err, Nmeasbins_1D = multiD.map_index_to_combined_variable(meas_N3D, np.sqrt(np.diag(meas_N3D_Vcov)), Nmeasbins_3D)
 #print(true_3D1D_map, true_N1D, true_N1D_err, Ntruebins_1D, sep='\n')
 #print(meas_3D1D_map, meas_N1D, meas_N1D_err, Nmeasbins_1D, sep='\n')
 
-eff1D, true_SID3D_sel = multiD.get_efficiency(true_N3D, true_N1D, true_SID3D, Ntruebins_3D, pass_selection, reco_weight)
+eff1D, true_SID3D_sel = multiD.get_efficiency(true_N1D, true_SID3D, true_3D1D_map, Ntruebins_3D, pass_selection, reco_weight)
 response_matrix, response = multiD.get_response_matrix(Nmeasbins_1D, Ntruebins_1D, meas_3D1D_map[meas_SID3D], true_3D1D_map[true_SID3D_sel], reco_weight)
 #print(eff1D, response_matrix, sep='\n')
 

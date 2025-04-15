@@ -1,26 +1,39 @@
 from .packages import *
 import ROOT
 
-def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins):
-    Nbins_3D = Nbins**3
-    ### mapping index from 3D to 1D
-    f_3D1D_map = np.zeros(Nbins_3D, dtype=np.int32)
-    tmpidx = 0
-    for ibin in range(Nbins_3D):
-        if f_N3D[ibin] > 0:
-            tmpidx += 1
-            f_3D1D_map[ibin] = tmpidx
-    
-    f_N1D = f_N3D[f_N3D>0]
-    f_N1D_err = f_N3D_err[f_N3D>0]
-    Nbins_1D = len(f_N1D)
+def get_SID2Dmap(Nbins): # define the map to make it easier to retrieve (IDini, IDend) from index of the 2D variable
+    Nbins_2D = Nbins * (Nbins + 1) // 2 # number of bins for the combined 2D variable (IDini, IDend)
+    SID2Dmap = np.zeros([Nbins_2D, 2], dtype=np.int32)
+    for SID_ini in range(Nbins):
+        for SID_end in range(SID_ini, Nbins):
+            SID2Dmap[SID_ini + (SID_end*(SID_end+1))//2] = [SID_ini, SID_end]
+    return SID2Dmap, Nbins_2D
+
+def map_index_to_combined_variable(f_N3D, f_N3D_err, Nbins_3D, enable=True):
+    ### mapping index from 3D to 1D # this is not necessary anymore. We keep the codes just in case the total number of bin is still too large to handle.
+    if enable:
+        f_3D1D_map = np.zeros(Nbins_3D, dtype=np.int32)
+        tmpidx = 0
+        for ibin in range(Nbins_3D):
+            if f_N3D[ibin] > 0:
+                tmpidx += 1
+                f_3D1D_map[ibin] = tmpidx
+        nonempty_map = f_3D1D_map>0
+        f_N1D = f_N3D[nonempty_map]
+        f_N1D_err = f_N3D_err[nonempty_map]
+        Nbins_1D = len(f_N1D)
+    else: # makes no difference just to keep the codes for 3D to 1D
+        f_3D1D_map = np.arange(1, Nbins_3D+1, dtype=np.int32)
+        f_N1D = f_N3D
+        f_N1D_err = f_N3D_err
+        Nbins_1D = Nbins_3D
     return f_3D1D_map, f_N1D, f_N1D_err, Nbins_1D
 
-def get_efficiency(f_true_N3D, f_true_N1D, f_true_SID3D, Nbins_3D, pass_selection, weight):
+def get_efficiency(f_true_N1D, f_true_SID3D, f_true_3D1D_map, Nbins_3D, pass_selection, weight):
     f_true_SID3D_sel = f_true_SID3D[pass_selection]
     f_true_N3D_sel, _ = np.histogram(f_true_SID3D_sel, bins=np.arange(Nbins_3D+1), weights=weight)
 
-    f_eff1D = utils.safe_divide(f_true_N3D_sel[f_true_N3D>0], f_true_N1D)
+    f_eff1D = utils.safe_divide(f_true_N3D_sel[f_true_3D1D_map>0], f_true_N1D)
     return f_eff1D, f_true_SID3D_sel
 
 def get_response_matrix(f_Nmeasbins, f_Ntruebins, f_meas_hist, f_true_hist, weight):
@@ -91,12 +104,26 @@ def efficiency_correct_1Dvar(f_data_unfold, f_data_unfold_cov, f_eff1D, f_true_3
     #f_unfd_N3D_err = np.sqrt(np.diag(f_unfd_N3D_Vcov))
     return f_unfd_N3D, f_unfd_N3D_Vcov
 
-def get_unfold_histograms(f_unfd_N3D, f_Ntruebins):
-    f_unfd_N3D_real3D = np.reshape(f_unfd_N3D, [f_Ntruebins, f_Ntruebins, f_Ntruebins])
-    f_unfd_Nini = f_unfd_N3D_real3D.sum((0,1))[1:]
-    f_unfd_Nend = f_unfd_N3D_real3D.sum((0,2))[1:]
-    f_unfd_Nint_ex = f_unfd_N3D_real3D.sum((1,2))[1:]
-    f_unfd_Ninc = np.zeros_like(f_unfd_Nini)
+def get_unfold_histograms(f_unfd_N3D, f_Ntruebins, f_Ntruebins_2D, f_Ntruebins_3D, SID2Dmap, signal_int_type):
+    f_unfd_Nini = np.zeros(f_Ntruebins)
+    f_unfd_Nend = np.zeros(f_Ntruebins)
+    f_unfd_Nint_ex = np.zeros(f_Ntruebins)
+    
+    for jbin in range(f_Ntruebins_3D):
+        i_int = jbin // f_Ntruebins_2D
+        i_2D = jbin % f_Ntruebins_2D
+        i_ini, i_end = SID2Dmap[i_2D]
+        f_unfd_Nini[i_ini] += f_unfd_N3D[jbin]
+        f_unfd_Nend[i_end] += f_unfd_N3D[jbin]
+        if i_int == signal_int_type: # indicate the index of the signal channel
+            f_unfd_Nint_ex[i_end] += f_unfd_N3D[jbin]
+        else:
+            f_unfd_Nint_ex[0] += f_unfd_N3D[jbin]
+
+    f_unfd_Nini = f_unfd_Nini[1:]
+    f_unfd_Nend = f_unfd_Nend[1:]
+    f_unfd_Nint_ex = f_unfd_Nint_ex[1:]
+    f_unfd_Ninc = np.zeros(f_Ntruebins-1)
     for ibin in range(f_Ntruebins-1):
         ## two equivalent way to calculate the incident histogram
         for itmp in range(0, ibin+1):
