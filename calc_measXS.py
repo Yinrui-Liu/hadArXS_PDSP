@@ -7,9 +7,9 @@ import hadana.parameters as parameters
 
 
 beamPDG = 211
-datafilename = "processed_files/procVars_piPDSP.pkl" # Data goes here
-MCfilename = "processed_files/procVars_piMC.pkl" # Monte Carlo Data here
-resfilename = "processed_files/response_pi.pkl"
+datafilename = "processed_files/procVars_piMC_test.pkl" # Data goes here
+MCfilename = "processed_files/procVars_piMC_test.pkl" # Monte Carlo Data here
+resfilename = "processed_files/response_pi_test.pkl"
 # types of systematic uncertainties to include
 bkg_scale = [1, 1, 1, 1, 1, 1, 1] # should be imported from sideband fit  pionp [0.93, 1, 1.72, 1.43, 0.93, 1, 1]  proton [1, 1, 1, 1, 1, 1, 1]
 bkg_scale_err = [0, 0, 0, 0, 0, 0, 0] # pionp [0.12, 0, 0.13, 0.11, 0.12, 0, 0]  proton [0, 0, 0, 0, 0, 0, 0]
@@ -25,7 +25,7 @@ elif beamPDG == 2212:
     meas_bins = parameters.meas_bins_proton
 Ntrueinttype = 6 # number of true interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
 Nrecointtype = 6 # number of reco interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
-signal_int_type = 1
+signal_int_type = 4
 
 ### load data histograms
 with open(datafilename, 'rb') as datafile: # either fake data or real data
@@ -36,7 +36,7 @@ mask_FullSelection = processedVars["mask_FullSelection"]
 combined_mask = mask_SelectedPart & mask_FullSelection
 reco_initial_energy = processedVars["reco_initial_energy"]
 reco_end_energy = processedVars["reco_end_energy"]
-reco_sigflag = processedVars["reco_sigflag"]
+reco_channel = processedVars["reco_int_type"]
 reco_containing = processedVars["reco_containing"]
 particle_type = processedVars["particle_type"]
 weight_dt = processedVars["reweight"]
@@ -46,23 +46,23 @@ weight_dt = processedVars["reweight"]
 print("### selection")
 divided_recoEini, divided_weights = utils.divide_vars_by_partype(reco_initial_energy, particle_type, mask=combined_mask, weight=weight_dt)
 divided_recoEend, divided_weights = utils.divide_vars_by_partype(reco_end_energy, particle_type, mask=combined_mask, weight=weight_dt)
-divided_recoflag, divided_weights = utils.divide_vars_by_partype(reco_sigflag, particle_type, mask=combined_mask, weight=weight_dt)
+divided_recochnl, divided_weights = utils.divide_vars_by_partype(reco_channel, particle_type, mask=combined_mask, weight=weight_dt)
 divided_recoisct, divided_weights = utils.divide_vars_by_partype(reco_containing, particle_type, mask=combined_mask, weight=weight_dt)
 data_reco_Eini = divided_recoEini[0]
 data_reco_Eend = divided_recoEend[0]
-data_reco_flag = divided_recoflag[0]
+data_reco_chnl = divided_recochnl[0]
 data_reco_isCt = divided_recoisct[0]
 data_reco_weight = divided_weights[0]
 
 Ndata = len(data_reco_Eini)
 Ntruebins, Ntruebins_3D, true_cKE, true_wKE = utils.set_bins(true_bins)
 Nmeasbins, Nmeasbins_3D, meas_cKE, meas_wKE = utils.set_bins(meas_bins)
-data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex = slicing.get_sliceID_histograms(data_reco_Eini, data_reco_Eend, data_reco_flag, data_reco_isCt, meas_bins)
+data_meas_SIDini, data_meas_SIDend, data_meas_SIDint_ex = slicing.get_sliceID_histograms(data_reco_Eini, data_reco_Eend, data_reco_chnl==signal_int_type, data_reco_isCt, meas_bins)
 SID2Dmap, Ntruebins_2D = multiD.get_SID2Dmap(Ntruebins)
 Ntruebins_3D = Ntruebins_2D * Ntrueinttype # number of bins for the combined 3D variable (IDini, IDend, int_type)
 _, Nmeasbins_2D = multiD.get_SID2Dmap(Nmeasbins)
 Nmeasbins_3D = Nmeasbins_2D * Nrecointtype
-data_meas_SID3D, data_meas_N3D, data_meas_N3D_Vcov = slicing.get_3D_histogram(data_meas_SIDini, data_meas_SIDend, data_reco_flag, Nmeasbins_2D, Nmeasbins_3D, data_reco_weight)
+data_meas_SID3D, data_meas_N3D, data_meas_N3D_Vcov = slicing.get_3D_histogram(data_meas_SIDini, data_meas_SIDend, data_reco_chnl, Nmeasbins_2D, Nmeasbins_3D, data_reco_weight)
 data_meas_N3D_err = np.sqrt(np.diag(data_meas_N3D_Vcov))
 
 
@@ -76,26 +76,26 @@ mask_FullSelection_mc = processedVars_mc["mask_FullSelection"]
 combined_mask_mc = mask_SelectedPart_mc & mask_FullSelection_mc
 reco_initial_energy_mc = processedVars_mc["reco_initial_energy"]
 reco_end_energy_mc = processedVars_mc["reco_end_energy"]
-reco_sigflag_mc = processedVars_mc["reco_sigflag"]
+reco_channel_mc = processedVars_mc["reco_int_type"]
 reco_containing_mc = processedVars_mc["reco_containing"]
 particle_type_mc = processedVars_mc["particle_type"]
 weight_mc = processedVars_mc["reweight"]
 
 divided_recoEini_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_initial_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 divided_recoEend_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_end_energy_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
-divided_recoflag_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_sigflag_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
+divided_recochnl_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_channel_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 divided_recoisct_mc, divided_weights_mc = utils.divide_vars_by_partype(reco_containing_mc, particle_type_mc, mask=combined_mask_mc, weight=weight_mc)
 Ntruemc = len(reco_initial_energy_mc[combined_mask_mc]) - len(divided_recoEini_mc[0])
 bkg_meas_N3D_list = []
 bkg_meas_N3D_err_list = []
-for ibkg in range(3, len(divided_recoEini_mc)):
+for ibkg in range(7, len(divided_recoEini_mc)): # bkg starts from 7 (index 21, 22, 23, 24, 25, 26, 27)
     bkg_reco_Eini = divided_recoEini_mc[ibkg]
     bkg_reco_Eend = divided_recoEend_mc[ibkg]
-    bkg_reco_flag = divided_recoflag_mc[ibkg]
+    bkg_reco_chnl = divided_recochnl_mc[ibkg]
     bkg_reco_isCt = divided_recoisct_mc[ibkg]
     bkg_reco_weight = divided_weights_mc[ibkg]
-    bkg_meas_SIDini, bkg_meas_SIDend, bkg_meas_SIDint_ex = slicing.get_sliceID_histograms(bkg_reco_Eini, bkg_reco_Eend, bkg_reco_flag, bkg_reco_isCt, meas_bins)
-    bkg_meas_SID3D, bkg_meas_N3D, bkg_meas_N3D_Vcov = slicing.get_3D_histogram(bkg_meas_SIDini, bkg_meas_SIDend, bkg_reco_flag, Nmeasbins_2D, Nmeasbins_3D, bkg_reco_weight)
+    bkg_meas_SIDini, bkg_meas_SIDend, bkg_meas_SIDint_ex = slicing.get_sliceID_histograms(bkg_reco_Eini, bkg_reco_Eend, bkg_reco_chnl, bkg_reco_isCt, meas_bins)
+    bkg_meas_SID3D, bkg_meas_N3D, bkg_meas_N3D_Vcov = slicing.get_3D_histogram(bkg_meas_SIDini, bkg_meas_SIDend, bkg_reco_chnl, Nmeasbins_2D, Nmeasbins_3D, bkg_reco_weight)
     bkg_meas_N3D_list.append(bkg_meas_N3D)
     bkg_meas_N3D_err_list.append(np.sqrt(np.diag(bkg_meas_N3D_Vcov)))
 
@@ -301,7 +301,7 @@ plt.ylabel("Cross section (mb)") # 1 mb = 10^{-27} cm^2
 plt.xlim(([true_bins[-1], true_bins[0]]))
 plt.ylim(bottom=0)
 plt.legend()
-plt.savefig(f"plots/XSmeas_{beamPDG}.pdf")
+#plt.savefig(f"plots/XSmeas_{beamPDG}.pdf")
 plt.show()
 
 plt.pcolormesh(true_bins[1:-1], true_bins[1:-1], utils.transform_cov_to_corr_matrix(unfd_XS_Vcov[1:-1, 1:-1]), cmap="RdBu_r", vmin=-1, vmax=1)
@@ -311,5 +311,5 @@ plt.yticks(true_bins[1:-1])
 plt.xlabel(r"Kinetic energy (MeV)")
 plt.ylabel(r"Kinetic energy (MeV)")
 plt.colorbar()
-plt.savefig(f"plots/XSmeascorr_{beamPDG}.pdf")
+#plt.savefig(f"plots/XSmeascorr_{beamPDG}.pdf")
 plt.show()

@@ -196,7 +196,7 @@ class Particle:
             return 4
         elif (n_pions + n_showers) > 1: # Prod
             return 5
-        return 6
+        return 0 # default
 
     def DaughterCutForPion(self, evt, isMC):
         # print("How many events in evt[var]?", len(evt["reco_daughter_PFP_trackScore"]))

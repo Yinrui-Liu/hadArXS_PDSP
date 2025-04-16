@@ -4,7 +4,7 @@ from hadana.BetheBloch import BetheBloch
 from hadana.multiD_mapping import get_SID2Dmap
 
 beamPDG = 211
-selected_type = "prod" # Sets the type of interaction being analyzed.
+selected_type = "abs" # Sets the type of interaction being analyzed.
 conversion_dict = {"abs": 4, "cex": 2, "dcex": 1,
               "inel": 1, "prod": 5, "incl": -1}
 Ntrueinttype = len(conversion_dict) # number of true interaction types ["noint", "inel", "cex", "dcex", "abs", "prod"]
@@ -29,7 +29,6 @@ true_initial_energy = processedVars["true_initial_energy"]
 true_end_energy = processedVars["true_end_energy"]
 true_sigflag = processedVars["true_sigflag"]
 #channel_mask = []
-channel = []
 
 '''if selected_type != "incl":
     for i, int_type in enumerate(processedVars["true_int_type"]):
