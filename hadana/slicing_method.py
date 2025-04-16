@@ -1,6 +1,6 @@
 from .packages import *
 
-def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, f_containing, KEbins):
+def get_sliceID_histograms(f_KEi, f_KEf, f_int_flag, f_containing, KEbins):
     f_SIDini = []
     f_SIDend = []
     f_SIDint_ex = []
@@ -9,7 +9,7 @@ def get_sliceID_histograms(f_KEi, f_KEf, f_int_type, f_containing, KEbins):
     for ievt in range(f_Nevts):
         KE_ini = f_KEi[ievt]
         KE_end = f_KEf[ievt]
-        intrcn = f_int_type[ievt]
+        intrcn = f_int_flag[ievt]
         containing = f_containing[ievt]
         
         ## initial slice ID

@@ -112,7 +112,7 @@ class Processor:
                 isFake = [True]*Nbatch
             elif self.fake_data is False:
                 isFake = [False]*Nbatch
-            true_int_type, reco_int_type = self.particle.DaughterCutForPion(evt, self.isMC) # This is the line that does the exdclusive classification
+            true_int_type, reco_int_type = self.particle.DaughterCutForPion(evt, self.isMC) # This is the line that does the exclusive classification (hard-coded for pdg==211 for now)
             for ievt in range(Nbatch):
                 if self.isMC:
                     ## calculate true length and true energies
